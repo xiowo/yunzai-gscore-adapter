@@ -1,19 +1,50 @@
-# Gscore-Adapter for Yunzai
+﻿# 🦊 Yunzai早柚核心适配器 (Gscore-Adapter)
 
-把 Yunzai 作为平台侧适配器接入 `gsuid-core`（早柚核心）：
+这是一个适用于 [Yunzai](https://github.com/TimeRainStarSky/Yunzai) 的 [GScore](https://github.com/Genshin-bots/gsuid_core)（早柚核心）适配器插件。它通过 WebSocket 连接 GScore 服务，将 Yunzai 收到的消息事件上报给 GScore，并将 GScore 下发的回复发送回对应会话。
 
-- Yunzai 收到的群聊/私聊消息会按 GsCore `MessageReceive` 协议上报到 core。
-- core 下发的 `MessageSend` 会被转换为 Yunzai 消息并发回对应群/私聊。
-- 支持文本、图片、@、回复、语音、视频、文件、node 拆分发送、日志包、撤回回执、撤回/禁言控制包。
-- 支持进群、退群、戳一戳三类标准 meta 事件上报。
-- QQBot 会按私聊/群聊分别在 Redis 记录最近 5 分钟消息 ID，下发时优先使用最新消息 ID 走被动发送窗口。
+## ✨ 主要功能
 
-## 配置
+- **🚀 多 Bot 接入**: 支持为每个已登录 Bot 单独启用连接，未启用的 Bot 不会接入 GScore。
+- **⚙️ WebUI 配置**: 支持在 Guoba / 插件 WebUI 中配置全局连接地址、Token、重连间隔和 Bot 列表。
+- **🔄 断线重连**: WebSocket 断开后会按配置间隔自动重连，也支持手动触发重连。
+- **📡 消息上报**: 支持将 Yunzai 群聊 / 私聊消息转换为 GScore `MessageReceive` 协议。
+- **📡 元事件上报**: 支持上报进群、退群、戳一戳等标准 meta 事件。
+- **🧩 合并转发**: OneBot 下 `node` 按合并转发发送，节点身份使用当前 Bot QQ 号和昵称；QQBot 下自动降级为单条消息逐条发送。
+- **↩️ 撤回回执**: 支持 GScore `wait_recall` 场景，发送后回传 Yunzai 消息 ID。
+- **🛡️ 控制包支持**: 支持 GScore 下发撤回、禁言等控制包。
 
-编辑：`plugins/Gscore-Adapter/config/config.yaml`
+## 🛠️ 安装插件
+
+```bash
+git clone https://gitee.com/xiowo/yunzai-gscore-adapter.git ./plugins/Gscore-Adapter
+```
+
+```bash
+pnpm i
+```
+
+> 容器部署时请确保 Yunzai 容器可以访问 GScore 服务。如果 GScore 不在同一容器内，请不要把连接地址写成容器内的 `127.0.0.1`，建议使用宿主机 IP、Docker Network 容器名或同网络服务名。
+
+## 📝 配置指南
+
+你可以通过 Guoba / 插件 WebUI 修改配置，也可以直接编辑：`plugins/Gscore-Adapter/config/config.yaml`。
+
+| 配置项 | 说明 | 默认值 |
+| :--- | :--- | :--- |
+| **启用适配器** | 全局开关；关闭后不会建立任何 GScore 连接 | `true` |
+| **全局连接地址** | GScore WebSocket 地址，只支持 `ws://` / `wss://` | `ws://127.0.0.1:8765` |
+| **全局 Token** | GScore `WS_TOKEN`，为空则不携带 Token | `空` |
+| **重连间隔** | WebSocket 断开后的重连间隔，单位毫秒 | `5000` |
+| **上报私聊** | 是否向 GScore 上报私聊消息 | `true` |
+| **上报群聊** | 是否向 GScore 上报群聊消息 | `true` |
+| **上报 Meta 事件** | 是否向 GScore 上报进群、退群、戳一戳等事件 | `true` |
+| **Bot 列表** | 需要接入 GScore 的 Bot 配置；每个 Bot 可单独启用 | `{}` |
+| **Bot 连接地址** | 单个 Bot 的 GScore 地址；为空时使用全局连接地址 | `空` |
+| **Bot Token** | 单个 Bot 的 GScore Token；为空时使用全局 Token | `空` |
+
+配置文件示例：
 
 ```yaml
-# 全局开关默认开启；是否连接由 bots 下每个 Bot 单独控制
 enable: true
 coreUrl: ws://127.0.0.1:8765
 token: ""
@@ -21,7 +52,6 @@ reconnectInterval: 5000
 reportPrivate: true
 reportGroup: true
 reportMeta: true
-splitNode: true
 bots:
   "123456789":
     enable: true
@@ -29,44 +59,39 @@ bots:
     token: ""          # 留空使用全局 token
 ```
 
-`coreUrl` 指向 gsuid-core 的 HTTP/WS 地址；如果 core 配置了 `WS_TOKEN`，请同步填写 `token`。连接路由 ID 固定为 `Yunzai-{qq号}`，运行时会替换为对应 bot 账号，例如 `Yunzai-123456789`，不作为配置项暴露。
 
-全局开关默认开启，但 Bot 默认都关闭：需要在 `bots` 下为指定 QQ 号设置 `enable: true` 才会连接。单个 Bot 的 `coreUrl` 留空时使用全局 `coreUrl`，也可为不同 Bot 配不同 core 地址。
+### 🐱 指令列表
 
-## Guoba WebUI
+指令默认使用 `#早柚` 前缀：
 
-已新增 `guoba.support.js`，安装并启用 Guoba-Plugin 后可在后台配置：
+| 指令 | 说明 |
+| :--- | :--- |
+| `开发中` | 群内命令占位 |
 
-- 全局启用开关、全局连接地址、Token。
-- “Bot 列表”使用可增删的列表表单，并会自动带出当前已登录 Bot。
-- 每个 Bot 单独启用/关闭，默认关闭；开启后才会连接 core。
-- 每个 Bot 可自定义连接地址、Token；留空则回退到全局配置。
-- 路由 ID 固定为 `Yunzai-{qq号}`，不在 WebUI 中配置。
-- 保存后会自动重载配置并发起连接；也可发送 `#gscore重连` 手动重连。
+> Bot 是否接入 GScore 由配置中的 Bot 单独开关决定；全局开关开启不代表所有 Bot 都会连接。
 
-## 目录结构
 
-- `index.js`：插件入口、事件绑定、状态/重连命令。
-- `lib/client.js`：WebSocket 连接、重连、core 下发调度。
-- `lib/message.js`：Yunzai 消息与 GsCore 消息段互转。
-- `lib/meta.js`：notice/meta 事件转换。
-- `lib/config.js` / `lib/constants.js` / `lib/utils.js`：配置加载、默认值和公共工具；路由 ID 固定模板在常量中定义。
-- `guoba.support.js`：Guoba WebUI 配置表单。
+## ❓ 常见问题 (FAQ)
 
-## 命令
+### Q1: 无法连接到 GScore？
 
-- `#gscore状态`：查看连接状态。
-- `#gscore重连`：重读配置并重新连接。
+**A**:
+1. 请确认 GScore 已启动，并监听配置中的 `coreUrl` 地址。
+2. 如果 GScore 开启了 `WS_TOKEN`，请在插件配置中正确填写 `token`。
+3. 如果 Yunzai 运行在 Docker 容器中，容器内的 `127.0.0.1` 指向容器本身，请改用宿主机 IP 或 Docker Network 服务名。
 
-## 验证
+### Q2: 为什么 GScore 没有收到消息？
 
-```powershell
-Set-Location d:\AAxiowo\yunzai\yunzai
-node --check plugins/Gscore-Adapter/index.js
-```
+**A**:
+1. 请确认插件全局开关已开启。
+2. 请确认对应 Bot 在 Bot 列表中已单独启用。
+3. 请确认 `reportPrivate` / `reportGroup` 没有关闭对应消息类型。
+4. 发送 `#gscore状态` 查看连接是否正常。
 
-## 注意
+### Q3: 为什么 QQBot 的合并转发变成了多条消息？
 
-上报和接收过滤使用的 `bot_id` 会根据 `e.bot.adapter.id` 自动识别平台：`QQBot -> qqgroup`、`QQGuild -> qqguild`、`KOOK -> kook`、`Telegram -> telegram`、`Discord -> discord`；其余适配器固定视为 `onebot`。
+**A**: QQBot 下默认不按 OneBot 合并转发协议发送 `node`，插件会自动降级为单个消息逐条发送，避免消息无法送达。
 
-QQBot 被动发送依赖最近消息 ID：插件收到 QQBot 私聊/群聊消息时，会写入 `Yz:GscoreAdapter:QQBot:MessageId:{selfId}:{direct|group}:{targetId}`，TTL 为 300 秒；core 下发到同一私聊/群聊时会优先读取该 ID 作为 `{ id }` 发送事件参数，过期后自动丢弃并回退普通发送。
+## 📄 License
+
+MIT License
