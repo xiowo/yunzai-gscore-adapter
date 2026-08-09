@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gscore 适配器</title>
+    <link rel="stylesheet" href="page.css" />
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand"><span class="brand-icon">🦊</span><span>Gscore 适配器</span></div>
+            <nav class="nav" aria-label="配置页面">
+                <button class="nav-item active" type="button" data-page="bots"><span aria-hidden="true">▦</span>Bot
+                    连接</button>
+                <button class="nav-item" type="button" data-page="basic"><span aria-hidden="true">⚙</span>基础配置</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="status-pill"><span class="status-dot"></span><span id="footerStatus">正在读取</span></div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <h1 id="pageTitle">Bot 连接</h1>
+                    <p id="pageSubtitle">选择需要接入早柚核心的 Yunzai Bot</p>
+                </div>
+                <div class="top-actions">
+                    <button id="themeBtn" class="theme-btn" type="button" title="切换主题" aria-label="切换主题">冷灰</button>
+                    <button id="refreshBtn" class="icon-btn" type="button" title="刷新配置" aria-label="刷新配置">↻</button>
+                </div>
+            </header>
+
+            <nav class="mobile-tabs" aria-label="配置页面">
+                <button class="mobile-tab active" type="button" data-page="bots">Bot 连接</button>
+                <button class="mobile-tab" type="button" data-page="basic">基础配置</button>
+            </nav>
+
+            <section class="content">
+                <form id="configForm">
+                    <section id="page-bots" class="page active">
+                        <div class="section-head">
+                            <div>
+                                <h2>Bot 连接</h2>
+                                <p>独立地址和 Token 留空时继承全局配置。</p>
+                            </div>
+                            <span id="botCount" class="count">0 个已启用</span>
+                        </div>
+                        <div id="botList" class="bot-list">
+                            <div class="empty">正在读取 Bot...</div>
+                        </div>
+                    </section>
+
+                    <section id="page-basic" class="page">
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>连接设置</h2>
+                                    <p>配置早柚核心的 WebSocket 服务。</p>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <label class="switch-card wide">
+                                    <span><strong>启用适配器</strong><small>关闭后会断开所有现有连接。</small></span>
+                                    <span class="toggle"><input name="enable" type="checkbox" /><i></i></span>
+                                </label>
+                                <div class="form-grid">
+                                    <label class="field wide"><span>全局连接地址</span><input name="coreUrl"
+                                            placeholder="ws://127.0.0.1:8765" required /></label>
+                                    <label class="field"><span>全局 Token</span><span class="password-wrap"><input
+                                                name="token" type="password" placeholder="未配置可留空" /><button
+                                                class="password-btn" type="button">显示</button></span></label>
+                                    <label class="field"><span>重连间隔</span><span class="suffix-input"><input
+                                                name="reconnectInterval" type="number" min="1000" max="3600000"
+                                                step="1000" /><b>ms</b></span></label>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>消息处理</h2>
+                                    <p>控制转发给早柚核心的事件类型。</p>
+                                </div>
+                            </div>
+                            <div class="switch-grid">
+                                <label
+                                    class="switch-card"><span><strong>上报私聊</strong><small>转发私聊消息事件</small></span><span
+                                        class="toggle"><input name="reportPrivate"
+                                            type="checkbox" /><i></i></span></label>
+                                <label
+                                    class="switch-card"><span><strong>上报群聊</strong><small>转发群聊消息事件</small></span><span
+                                        class="toggle"><input name="reportGroup"
+                                            type="checkbox" /><i></i></span></label>
+                                <label class="switch-card"><span><strong>上报 Meta
+                                            事件</strong><small>转发通知和状态事件</small></span><span class="toggle"><input
+                                            name="reportMeta" type="checkbox" /><i></i></span></label>
+                            </div>
+                        </section>
+                    </section>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <div id="saveDock" class="save-dock hidden"><span>配置有未保存的修改</span><button id="saveBtn" type="submit"
+            form="configForm">保存配置</button></div>
+    <div id="toast" class="toast" role="status"></div>
+    <script>
+        const params = new URLSearchParams(location.search)
+        const webBase = params.get("__webBase") || ""
+        const apiUrl = `${webBase}/api/gscore-adapter/config`
+        const form = document.getElementById("configForm")
+        const botList = document.getElementById("botList")
+        const saveDock = document.getElementById("saveDock")
+        const toast = document.getElementById("toast")
+        const themeBtn = document.getElementById("themeBtn")
+        const THEME_KEY = "gscore-adapter-theme"
+
+        let bots = []
+        let savedSnapshot = ""
+        let loading = false
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, char => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+            })[char])
+        }
+
+        function showToast(message, error = false) {
+            toast.textContent = message
+            toast.classList.toggle("error", error)
+            toast.classList.add("show")
+            clearTimeout(showToast.timer)
+            showToast.timer = setTimeout(() => toast.classList.remove("show"), 2400)
+        }
+
+        function applyTheme(theme) {
+            const isCool = theme === "cool"
+            document.body.classList.toggle("theme-cool", isCool)
+            themeBtn.textContent = isCool ? "暖橙" : "冷灰"
+            themeBtn.title = isCool ? "切换到暖橙主题" : "切换到冷灰主题"
+            themeBtn.setAttribute("aria-label", themeBtn.title)
+        }
+
+        function toggleTheme() {
+            const nextTheme = document.body.classList.contains("theme-cool") ? "warm" : "cool"
+            localStorage.setItem(THEME_KEY, nextTheme)
+            applyTheme(nextTheme)
+            showToast(nextTheme === "cool" ? "已切换到冷灰主题" : "已切换到暖橙主题")
+        }
+
+        function switchPage(page) {
+            document.querySelectorAll("[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page))
+            document.querySelectorAll(".page").forEach(el => el.classList.toggle("active", el.id === `page-${page}`))
+            const basic = page === "basic"
+            document.getElementById("pageTitle").textContent = basic ? "基础配置" : "Bot 连接"
+            document.getElementById("pageSubtitle").textContent = basic ? "设置全局连接与消息处理方式" : "选择需要接入早柚核心的 Yunzai Bot"
+        }
+
+        function collectConfig() {
+            return {
+                enable: form.elements.enable.checked,
+                coreUrl: form.elements.coreUrl.value.trim(),
+                token: form.elements.token.value,
+                reconnectInterval: Number(form.elements.reconnectInterval.value),
+                reportPrivate: form.elements.reportPrivate.checked,
+                reportGroup: form.elements.reportGroup.checked,
+                reportMeta: form.elements.reportMeta.checked,
+                bots: bots.map(bot => ({
+                    botId: bot.botId,
+                    enable: Boolean(bot.enable),
+                    coreUrl: String(bot.coreUrl || "").trim(),
+                    token: String(bot.token || ""),
+                })),
+            }
+        }
+
+        function snapshot() {
+            return JSON.stringify(collectConfig())
+        }
+
+        function updateDirty() {
+            if (loading || !savedSnapshot) return
+            saveDock.classList.toggle("hidden", snapshot() === savedSnapshot)
+        }
+
+        function fillConfig(config) {
+            loading = true
+            for (const key of ["enable", "reportPrivate", "reportGroup", "reportMeta"]) {
+                form.elements[key].checked = Boolean(config[key])
+            }
+            for (const key of ["coreUrl", "token", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
+            loading = false
+        }
+
+        function renderBots() {
+            const enabledCount = bots.filter(bot => bot.enable).length
+            document.getElementById("botCount").textContent = `${enabledCount} 个已启用`
+            document.getElementById("footerStatus").textContent = form.elements.enable.checked ? `适配器已启用 · ${enabledCount} 个 Bot` : "适配器已关闭"
+
+            if (!bots.length) {
+                botList.innerHTML = '<div class="empty">未发现在线或已保存的 Bot。</div>'
+                return
+            }
+
+            botList.innerHTML = bots.map((bot, index) => {
+                const displayName = bot.name || `Bot ${bot.botId}`
+                const avatar = bot.avatar
+                    ? `<img class="bot-avatar" src="${escapeHtml(bot.avatar)}" alt="" />`
+                    : `<span class="bot-avatar-fallback">${escapeHtml(displayName.slice(0, 1).toUpperCase())}</span>`
+                return `
+              <article class="bot-card" data-index="${index}">
+                ${avatar}
+                <div>
+                  <div class="bot-title">${escapeHtml(displayName)}
+                    <span class="tag ${bot.online ? "online" : "offline"}">${bot.online ? "在线" : "离线"}</span>
+                    <span class="tag ${bot.enable ? "enabled" : ""}">${bot.enable ? "连接已启用" : "连接未启用"}</span>
+                  </div>
+                  <div class="bot-meta"><span>ID: ${escapeHtml(bot.botId)}</span><span>路由: Yunzai-${escapeHtml(bot.botId)}</span></div>
+                </div>
+                <div class="bot-actions">
+                  <button class="settings-btn" type="button" data-action="settings" title="独立连接设置" aria-label="独立连接设置">⚙</button>
+                  <label class="toggle"><input type="checkbox" data-field="enable" ${bot.enable ? "checked" : ""} /><i></i></label>
+                </div>
+                <div class="bot-options">
+                  <label class="field"><span>独立连接地址</span><input data-field="coreUrl" value="${escapeHtml(bot.coreUrl || "")}" placeholder="留空继承全局地址" /></label>
+                  <label class="field"><span>独立 Token</span><span class="password-wrap"><input data-field="token" type="password" value="${escapeHtml(bot.token || "")}" placeholder="留空继承全局 Token" /><button class="password-btn" type="button">显示</button></span></label>
+                </div>
+              </article>`
+            }).join("")
+        }
+
+        function resetSavedState() {
+            savedSnapshot = snapshot()
+            saveDock.classList.add("hidden")
+        }
+
+        async function request(url, options) {
+            const response = await fetch(url, options)
+            const data = await response.json().catch(() => ({}))
+            if (!response.ok || !data.ok) throw new Error(data.error || `请求失败 (${response.status})`)
+            return data
+        }
+
+        async function loadConfig({ preserveChanges = false } = {}) {
+            const button = document.getElementById("refreshBtn")
+            button.disabled = true
+            try {
+                const data = await request(apiUrl)
+                if (!preserveChanges) {
+                    fillConfig(data.config || {})
+                    bots = data.bots || []
+                    renderBots()
+                    resetSavedState()
+                } else {
+                    const current = new Map(bots.map(bot => [bot.botId, bot]))
+                    bots = (data.bots || []).map(bot => ({ ...bot, ...(current.get(bot.botId) || {}) }))
+                    renderBots()
+                    updateDirty()
+                }
+            } finally {
+                button.disabled = false
+            }
+        }
+
+        botList.addEventListener("click", event => {
+            const card = event.target.closest(".bot-card")
+            if (!card) return
+            if (event.target.closest('[data-action="settings"]')) {
+                card.classList.toggle("expanded")
+                event.target.closest("button").classList.toggle("active", card.classList.contains("expanded"))
+            }
+            if (event.target.classList.contains("password-btn")) {
+                const input = event.target.previousElementSibling
+                input.type = input.type === "password" ? "text" : "password"
+                event.target.textContent = input.type === "password" ? "显示" : "隐藏"
+            }
+        })
+
+        botList.addEventListener("input", event => {
+            const card = event.target.closest(".bot-card")
+            const field = event.target.dataset.field
+            if (!card || !field) return
+            const bot = bots[Number(card.dataset.index)]
+            bot[field] = event.target.type === "checkbox" ? event.target.checked : event.target.value
+            if (field === "enable") renderBots()
+            updateDirty()
+        })
+
+        document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => switchPage(el.dataset.page)))
+        document.querySelectorAll(".password-btn").forEach(button => button.addEventListener("click", () => {
+            const input = button.previousElementSibling
+            input.type = input.type === "password" ? "text" : "password"
+            button.textContent = input.type === "password" ? "显示" : "隐藏"
+        }))
+        form.addEventListener("input", updateDirty)
+        form.addEventListener("change", () => { renderBots(); updateDirty() })
+        form.addEventListener("submit", async event => {
+            event.preventDefault()
+            const button = document.getElementById("saveBtn")
+            button.disabled = true
+            try {
+                const data = await request(apiUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(collectConfig()),
+                })
+                fillConfig(data.config || {})
+                bots = data.bots || []
+                renderBots()
+                resetSavedState()
+                showToast(data.message || "配置已保存")
+            } catch (error) {
+                showToast(error.message || "保存失败", true)
+            } finally {
+                button.disabled = false
+            }
+        })
+        document.getElementById("refreshBtn").addEventListener("click", () => {
+            const dirty = savedSnapshot && snapshot() !== savedSnapshot
+            loadConfig({ preserveChanges: dirty }).then(() => showToast("配置已刷新")).catch(error => showToast(error.message, true))
+        })
+        themeBtn.addEventListener("click", toggleTheme)
+
+        applyTheme(localStorage.getItem(THEME_KEY) || "warm")
+        switchPage("bots")
+        loadConfig().catch(error => showToast(error.message || "读取配置失败", true))
+    </script>
+</body>
+
+</html>
