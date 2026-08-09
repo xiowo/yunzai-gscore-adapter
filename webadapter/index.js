@@ -92,8 +92,7 @@ export function init(ctx) {
 
     ctx.registerApi("post", "/gscore-adapter/config", async (req, res) => {
         try {
-            const current = await loadConfig()
-            const config = { ...normalizeConfig(req.body), splitNode: current.splitNode ?? DEFAULT_CONFIG.splitNode }
+            const config = normalizeConfig(req.body)
             await fs.writeFile(CONFIG_FILE, YAML.stringify(config), "utf8")
             emitReload()
             res.json({ ...(await getPayload()), message: "配置已保存并触发重载" })

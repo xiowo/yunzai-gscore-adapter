@@ -5,7 +5,6 @@ reconnectInterval: 5000
 reportPrivate: true
 reportGroup: true
 reportMeta: true
-splitNode: true
 bots:
   "4015656287":
     enable: true

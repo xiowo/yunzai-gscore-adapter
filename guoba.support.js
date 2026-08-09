@@ -79,7 +79,7 @@ export function supportGuoba() {
             name: "Gscore适配器",
             title: PLUGIN_NAME,
             description: "一个适用于Yunzai的早柚核心适配器",
-            author: "@MortalCat", 
+            author: "@MortalCat",
             authorLink: "https://github.com/xiowo",
             link: "https://github.com/xiowo/yunzai-gscore-adapter",
             isV3: true,
@@ -98,7 +98,6 @@ export function supportGuoba() {
                 { field: "reportPrivate", label: "上报私聊", component: "Switch" },
                 { field: "reportGroup", label: "上报群聊", component: "Switch" },
                 { field: "reportMeta", label: "上报 Meta 事件", component: "Switch" },
-                { field: "splitNode", label: "拆分 node 消息", component: "Switch" },
                 { label: "启用连接 Bot", component: "SOFT_GROUP_BEGIN" },
                 {
                     field: "botList",
