@@ -1,0 +1,17 @@
+enable: true
+coreUrl: ws://127.0.0.1:8765
+token: ""
+reconnectInterval: 5000
+reportPrivate: true
+reportGroup: true
+reportMeta: true
+splitNode: true
+bots:
+  "4015656287":
+    enable: true
+    coreUrl: ""
+    token: ""
+  stdin:
+    enable: false
+    coreUrl: ""
+    token: ""

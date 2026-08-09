@@ -1,0 +1,8 @@
+{
+    "name": "gscore-adapter",
+    "author": "MortalCat",
+    "version": "1.0.0",
+    "description": "一个适用于Yunzai的早柚核心适配器",
+    "type": "module",
+    "main": "index.js"
+}
