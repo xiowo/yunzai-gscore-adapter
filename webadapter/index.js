@@ -27,7 +27,7 @@ function normalizeWsUrl(value, { allowEmpty = false } = {}) {
     return text
 }
 
-function normalizeConfig(body = {}) {
+function normalizeConfig(body = {}, currentConfig = {}) {
     const bots = Object.create(null)
     for (const item of Array.isArray(body.bots) ? body.bots : []) {
         const botId = stringifyId(item?.botId).trim()
@@ -43,7 +43,6 @@ function normalizeConfig(body = {}) {
     if (!Number.isFinite(reconnectInterval) || reconnectInterval < 1000 || reconnectInterval > 3600000) {
         throw new Error("重连间隔应为 1000 至 3600000 毫秒")
     }
-
     return {
         enable: body.enable === true,
         coreUrl: normalizeWsUrl(body.coreUrl || DEFAULT_CONFIG.coreUrl),
@@ -52,6 +51,9 @@ function normalizeConfig(body = {}) {
         reportPrivate: body.reportPrivate === true,
         reportGroup: body.reportGroup === true,
         reportMeta: body.reportMeta === true,
+        silentUnauthorized: body.silentUnauthorized === true,
+        masterBypassGroupDisabled: body.masterBypassGroupDisabled === true,
+        groupRules: currentConfig.groupRules || {},
         bots,
     }
 }
@@ -92,7 +94,7 @@ export function init(ctx) {
 
     ctx.registerApi("post", "/gscore-adapter/config", async (req, res) => {
         try {
-            const config = normalizeConfig(req.body)
+            const config = normalizeConfig(req.body, await loadConfig())
             await fs.writeFile(CONFIG_FILE, YAML.stringify(config), "utf8")
             emitReload()
             res.json({ ...(await getPayload()), message: "配置已保存并触发重载" })

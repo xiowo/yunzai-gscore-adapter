@@ -5,6 +5,13 @@ reconnectInterval: 5000
 reportPrivate: true
 reportGroup: true
 reportMeta: true
+silentUnauthorized: false
+masterBypassGroupDisabled: false
+groupRules:
+  4015656287:D32CA530A0364C6E64D10B401D0B5AD1:
+    enabled: true
+    prefix: ""
+    blackUsers: []
 bots:
   "4015656287":
     enable: true

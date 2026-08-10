@@ -35,9 +35,12 @@ pnpm i
 | **全局连接地址** | GScore WebSocket 地址，只支持 `ws://` / `wss://` | `ws://127.0.0.1:8765` |
 | **全局 Token** | GScore `WS_TOKEN`，为空则不携带 Token | `空` |
 | **重连间隔** | WebSocket 断开后的重连间隔，单位毫秒 | `5000` |
+| **无权限静默** | 无权限用户执行插件命令时是否不返回提示 | `false` |
+| **主人正常转发** | 开启后当前群禁用时仍转发主人消息 | `false` |
 | **上报私聊** | 是否向 GScore 上报私聊消息 | `true` |
 | **上报群聊** | 是否向 GScore 上报群聊消息 | `true` |
 | **上报 Meta 事件** | 是否向 GScore 上报进群、退群、戳一戳等事件 | `true` |
+| **群规则** | 群启用状态、群前缀、群内用户拉黑列表 | `{}` |
 | **Bot 列表** | 需要接入 GScore 的 Bot 配置；每个 Bot 可单独启用 | `{}` |
 | **Bot 连接地址** | 单个 Bot 的 GScore 地址；为空时使用全局连接地址 | `空` |
 | **Bot Token** | 单个 Bot 的 GScore Token；为空时使用全局 Token | `空` |
@@ -49,9 +52,12 @@ enable: true
 coreUrl: ws://127.0.0.1:8765
 token: ""
 reconnectInterval: 5000
+silentUnauthorized: false
+masterBypassGroupDisabled: false
 reportPrivate: true
 reportGroup: true
 reportMeta: true
+groupRules: {}
 bots:
   "123456789":
     enable: true
@@ -66,7 +72,14 @@ bots:
 
 | 指令 | 说明 |
 | :--- | :--- |
-| `开发中` | 群内命令占位 |
+| `#早柚status` | 查看适配器启用 Bot 数、运行时间、拉黑群和拉黑用户人数 |
+| `#早柚version` | 查看适配器版本号 |
+| `#早柚更新` | 更新 Gscore-Adapter 插件本体 |
+| `#早柚群禁用` / `#早柚群启用` | 禁用 / 启用当前群消息转发给早柚 |
+| `#早柚拉黑@用户` / `#早柚取消拉黑@用户` | 控制被 @ 用户在当前群的消息是否转发给早柚 |
+| `#早柚群前缀` | 设置当前群前缀，例如 `#早柚群前缀zz` 后仅转发 `zz` 开头消息；直接发送 `#早柚群前缀` 会清空前缀 |
+
+> 群前缀判断会忽略消息开头的空格和 `/`，例如设置 `zz` 后，` /zzcore帮助` 会作为 `core帮助` 转发给早柚。
 
 > Bot 是否接入 GScore 由配置中的 Bot 单独开关决定；全局开关开启不代表所有 Bot 都会连接。
 
@@ -76,7 +89,7 @@ bots:
 ### Q1: 无法连接到 GScore？
 
 **A**:
-1. 请确认 GScore 已启动，并监听配置中的 `coreUrl` 地址。
+1. 请确认 GScore 已启动，并监听配置中的 `全局连接地址` 地址。
 2. 如果 GScore 开启了 `WS_TOKEN`，请在插件配置中正确填写 `token`。
 3. 如果 Yunzai 运行在 Docker 容器中，容器内的 `127.0.0.1` 指向容器本身，请改用宿主机 IP 或 Docker Network 服务名。
 
@@ -85,8 +98,9 @@ bots:
 **A**:
 1. 请确认插件全局开关已开启。
 2. 请确认对应 Bot 在 Bot 列表中已单独启用。
-3. 请确认 `reportPrivate` / `reportGroup` 没有关闭对应消息类型。
-4. 发送 `#gscore状态` 查看连接是否正常。
+3. 请确认 `上报私聊` / `上报群聊` 没有关闭。
+4. 请确认当前群没有被 `#早柚群禁用`，用户没有被 `#早柚拉黑`，以及群前缀配置是否匹配。
+5. 发送 `#早柚status` 查看连接是否正常。
 
 ### Q3: 为什么 QQBot 的合并转发变成了多条消息？
 

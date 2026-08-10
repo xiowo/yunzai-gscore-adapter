@@ -43,6 +43,14 @@ function restoreBotConfig(botList = []) {
     return bots
 }
 
+function normalizePersistConfig(config) {
+    const next = { ...config }
+    delete next.platformBotId
+    delete next.botList
+    delete next.maxReconnectAttempts
+    return next
+}
+
 function getLoginBotIds() {
     const bot = globalThis.Bot
     const uin = bot?.uin
@@ -95,6 +103,8 @@ export function supportGuoba() {
                 { field: "coreUrl", label: "全局连接地址", component: "Input", componentProps: { placeholder: "ws://127.0.0.1:8765" } },
                 { field: "token", label: "全局 Token", component: "InputPassword", componentProps: { placeholder: "core 配置 WS_TOKEN 时填写" } },
                 { field: "reconnectInterval", label: "重连间隔(ms)", component: "InputNumber", componentProps: { min: 1000, step: 1000 } },
+                { field: "silentUnauthorized", label: "无权限静默", component: "Switch", bottomHelpMessage: "开启后无权限用户执行插件命令不返回提示。" },
+                { field: "masterBypassGroupDisabled", label: "主人正常转发", component: "Switch", bottomHelpMessage: "开启后即使当前群被禁用，主人消息仍会转发给早柚。" },
                 { field: "reportPrivate", label: "上报私聊", component: "Switch" },
                 { field: "reportGroup", label: "上报群聊", component: "Switch" },
                 { field: "reportMeta", label: "上报 Meta 事件", component: "Switch" },
@@ -127,9 +137,7 @@ export function supportGuoba() {
                 const config = readConfig()
                 const next = { ...config, ...data }
                 if (Array.isArray(data.botList)) next.bots = restoreBotConfig(data.botList)
-                delete next.platformBotId
-                delete next.botList
-                writeConfig(next)
+                writeConfig(normalizePersistConfig(next))
                 reloadAdapter()
                 return Result.ok({}, getSaveMessage(next))
             },

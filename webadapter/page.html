@@ -92,6 +92,14 @@
                                     <label class="field"><span>重连间隔</span><span class="suffix-input"><input
                                                 name="reconnectInterval" type="number" min="1000" max="3600000"
                                                 step="1000" /><b>ms</b></span></label>
+                                    <label
+                                        class="switch-card"><span><strong>无权限静默</strong><small>无权限用户执行插件命令时不返回提示。</small></span><span
+                                            class="toggle"><input name="silentUnauthorized"
+                                                type="checkbox" /><i></i></span></label>
+                                    <label
+                                        class="switch-card"><span><strong>主人正常转发</strong><small>群禁用时仍转发主人消息。</small></span><span
+                                            class="toggle"><input name="masterBypassGroupDisabled"
+                                                type="checkbox" /><i></i></span></label>
                                 </div>
                             </div>
                         </section>
@@ -231,6 +239,8 @@
                 reportPrivate: form.elements.reportPrivate.checked,
                 reportGroup: form.elements.reportGroup.checked,
                 reportMeta: form.elements.reportMeta.checked,
+                silentUnauthorized: form.elements.silentUnauthorized.checked,
+                masterBypassGroupDisabled: form.elements.masterBypassGroupDisabled.checked,
                 bots: bots.map(bot => ({
                     botId: bot.botId,
                     enable: Boolean(bot.enable),
@@ -251,7 +261,7 @@
 
         function fillConfig(config) {
             loading = true
-            for (const key of ["enable", "reportPrivate", "reportGroup", "reportMeta"]) {
+            for (const key of ["enable", "reportPrivate", "reportGroup", "reportMeta", "silentUnauthorized", "masterBypassGroupDisabled"]) {
                 form.elements[key].checked = Boolean(config[key])
             }
             const coreUrl = parseCoreUrl(config.coreUrl)
