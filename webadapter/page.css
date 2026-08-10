@@ -494,6 +494,86 @@ body.theme-cool .bot-avatar-fallback {
     box-shadow: 0 0 0 3px rgba(240, 139, 85, .10);
 }
 
+.connection-parts {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr) 120px;
+    gap: 8px;
+}
+
+.protocol-select {
+    position: relative;
+}
+
+.protocol-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.protocol-trigger:focus,
+.protocol-select.open .protocol-trigger {
+    border-color: var(--primary-2);
+    box-shadow: 0 0 0 3px rgba(240, 139, 85, .10);
+}
+
+.protocol-trigger i {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform .18s ease;
+}
+
+.protocol-select.open .protocol-trigger i {
+    transform: translateY(2px) rotate(225deg);
+}
+
+.protocol-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    display: none;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.protocol-select.open .protocol-menu {
+    display: block;
+}
+
+.protocol-menu button {
+    display: block;
+    width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border: 0;
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.protocol-menu button:hover,
+.protocol-menu button[aria-selected="true"] {
+    background: var(--soft);
+    color: var(--primary);
+}
+
 .password-wrap,
 .suffix-input {
     position: relative;
@@ -726,6 +806,10 @@ body.theme-cool .bot-avatar-fallback {
     .form-grid,
     .switch-grid,
     .bot-options {
+        grid-template-columns: 1fr;
+    }
+
+    .connection-parts {
         grid-template-columns: 1fr;
     }
 

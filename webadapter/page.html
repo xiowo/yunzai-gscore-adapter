@@ -68,8 +68,24 @@
                                     <span class="toggle"><input name="enable" type="checkbox" /><i></i></span>
                                 </label>
                                 <div class="form-grid">
-                                    <label class="field wide"><span>全局连接地址</span><input name="coreUrl"
-                                            placeholder="ws://127.0.0.1:8765" required /></label>
+                                    <div class="field wide"><span>全局连接地址</span>
+                                        <div class="connection-parts">
+                                            <div class="protocol-select" data-protocol-select>
+                                                <input name="coreProtocol" type="hidden" value="ws://" />
+                                                <button class="protocol-trigger" type="button" aria-haspopup="listbox"
+                                                    aria-expanded="false"><span>ws://</span><i></i></button>
+                                                <div class="protocol-menu" role="listbox">
+                                                    <button type="button" role="option" data-value="ws://"
+                                                        aria-selected="true">ws://</button>
+                                                    <button type="button" role="option" data-value="wss://"
+                                                        aria-selected="false">wss://</button>
+                                                </div>
+                                            </div>
+                                            <input name="coreHost" placeholder="127.0.0.1" required />
+                                            <input name="corePort" type="number" min="1" max="65535" step="1"
+                                                placeholder="8765" required />
+                                        </div>
+                                    </div>
                                     <label class="field"><span>全局 Token</span><span class="password-wrap"><input
                                                 name="token" type="password" placeholder="未配置可留空" /><button
                                                 class="password-btn" type="button">显示</button></span></label>
@@ -139,6 +155,50 @@
             showToast.timer = setTimeout(() => toast.classList.remove("show"), 2400)
         }
 
+        function parseCoreUrl(value) {
+            const fallback = { protocol: "ws://", host: "127.0.0.1", port: "8765" }
+            const text = String(value || "").trim()
+            if (!text) return fallback
+            try {
+                const url = new URL(text)
+                return {
+                    protocol: url.protocol === "wss:" ? "wss://" : "ws://",
+                    host: url.hostname || fallback.host,
+                    port: url.port || fallback.port,
+                }
+            } catch {
+                const match = text.match(/^(wss?:\/\/)?([^:/]+)(?::(\d+))?$/i)
+                return match ? {
+                    protocol: (match[1] || fallback.protocol).toLowerCase(),
+                    host: match[2] || fallback.host,
+                    port: match[3] || fallback.port,
+                } : fallback
+            }
+        }
+
+        function buildCoreUrl() {
+            const protocol = form.elements.coreProtocol.value || "ws://"
+            const host = form.elements.coreHost.value.trim()
+            const port = form.elements.corePort.value.trim()
+            return `${protocol}${host}:${port}`
+        }
+
+        function setCoreProtocol(protocol) {
+            const value = protocol === "wss://" ? "wss://" : "ws://"
+            const select = document.querySelector("[data-protocol-select]")
+            form.elements.coreProtocol.value = value
+            select.querySelector(".protocol-trigger span").textContent = value
+            select.querySelectorAll("[data-value]").forEach(option => {
+                option.setAttribute("aria-selected", String(option.dataset.value === value))
+            })
+        }
+
+        function closeProtocolSelect() {
+            const select = document.querySelector("[data-protocol-select]")
+            select.classList.remove("open")
+            select.querySelector(".protocol-trigger").setAttribute("aria-expanded", "false")
+        }
+
         function applyTheme(theme) {
             const isCool = theme === "cool"
             document.body.classList.toggle("theme-cool", isCool)
@@ -165,7 +225,7 @@
         function collectConfig() {
             return {
                 enable: form.elements.enable.checked,
-                coreUrl: form.elements.coreUrl.value.trim(),
+                coreUrl: buildCoreUrl(),
                 token: form.elements.token.value,
                 reconnectInterval: Number(form.elements.reconnectInterval.value),
                 reportPrivate: form.elements.reportPrivate.checked,
@@ -194,7 +254,11 @@
             for (const key of ["enable", "reportPrivate", "reportGroup", "reportMeta"]) {
                 form.elements[key].checked = Boolean(config[key])
             }
-            for (const key of ["coreUrl", "token", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
+            const coreUrl = parseCoreUrl(config.coreUrl)
+            setCoreProtocol(coreUrl.protocol)
+            form.elements.coreHost.value = coreUrl.host
+            form.elements.corePort.value = coreUrl.port
+            for (const key of ["token", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
             loading = false
         }
 
@@ -293,6 +357,24 @@
         })
 
         document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => switchPage(el.dataset.page)))
+        document.querySelector("[data-protocol-select]").addEventListener("click", event => {
+            const select = event.currentTarget
+            const option = event.target.closest("[data-value]")
+            if (option) {
+                setCoreProtocol(option.dataset.value)
+                closeProtocolSelect()
+                updateDirty()
+                return
+            }
+            if (event.target.closest(".protocol-trigger")) {
+                const open = !select.classList.contains("open")
+                select.classList.toggle("open", open)
+                select.querySelector(".protocol-trigger").setAttribute("aria-expanded", String(open))
+            }
+        })
+        document.addEventListener("click", event => {
+            if (!event.target.closest("[data-protocol-select]")) closeProtocolSelect()
+        })
         document.querySelectorAll(".password-btn").forEach(button => button.addEventListener("click", () => {
             const input = button.previousElementSibling
             input.type = input.type === "password" ? "text" : "password"
