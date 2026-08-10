@@ -16,7 +16,7 @@
 ## 🛠️ 安装插件
 
 ```bash
-git clone https://gitee.com/xiowo/yunzai-gscore-adapter.git ./plugins/Gscore-Adapter
+git clone https://github.com/xiowo/yunzai-gscore-adapter.git ./plugins/Gscore-Adapter
 ```
 
 ```bash
