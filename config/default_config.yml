@@ -1,6 +1,7 @@
 enable: true
 coreUrl: ws://127.0.0.1:8765
 token: ""
+routeBotId: Yunzai
 reconnectInterval: 5000
 reportPrivate: true
 reportGroup: true

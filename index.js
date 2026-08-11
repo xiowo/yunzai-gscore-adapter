@@ -2,7 +2,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import { update as FrameworkUpdate } from "../other/update.js"
 import { GscoreClient } from "./lib/client.js"
-import { getBotRuntimeConfig, isBotEnabled, loadConfig, saveConfig } from "./lib/config.js"
+import { getBotRuntimeConfig, hasCustomConnection, isBotEnabled, loadConfig, saveConfig } from "./lib/config.js"
 import { PLUGIN_DIR, PLUGIN_NAME } from "./lib/constants.js"
 import { getOnlineBotIds, stringifyId } from "./lib/utils.js"
 
@@ -36,12 +36,29 @@ function stopAllClients() {
     clients.clear()
 }
 
-function startClient(config, selfId) {
-    const botId = stringifyId(selfId)
-    if (!botId || !isBotEnabled(config, botId)) return false
+function getClientKey(config) {
+    return `${config.coreUrl}\n${config.token}\n${config.routeBotId}`
+}
 
-    const runtimeConfig = getBotRuntimeConfig(config, botId)
-    const oldClient = clients.get(botId)
+function buildRuntimeConfigs(config, botIds) {
+    const groups = new Map()
+    for (const botId of botIds) {
+        const selfId = stringifyId(botId)
+        if (!selfId || !isBotEnabled(config, selfId)) continue
+        const botConfig = config.bots?.[selfId] || {}
+        const runtimeConfig = getBotRuntimeConfig(config, selfId)
+        if (!hasCustomConnection(botConfig)) runtimeConfig.routeBotId = config.routeBotId
+        const key = hasCustomConnection(botConfig) ? getClientKey(runtimeConfig) : "default"
+        const group = groups.get(key) || { ...runtimeConfig, selfId, selfIds: [], botConfigs: {} }
+        group.selfIds.push(selfId)
+        group.botConfigs[selfId] = runtimeConfig
+        groups.set(key, group)
+    }
+    return groups
+}
+
+function startClient(key, runtimeConfig) {
+    const oldClient = clients.get(key)
     if (oldClient?.hasSameConnection(runtimeConfig)) {
         oldClient.updateConfig(runtimeConfig)
         return true
@@ -49,7 +66,7 @@ function startClient(config, selfId) {
 
     oldClient?.stop()
     const client = new GscoreClient(runtimeConfig)
-    clients.set(botId, client)
+    clients.set(key, client)
     if (process.env.GSCORE_ADAPTER_DRY_RUN !== "1") client.start()
     return true
 }
@@ -57,8 +74,12 @@ function startClient(config, selfId) {
 function bindGlobalEvents() {
     if (eventsBound) return
     eventsBound = true
-    Bot.on("message", e => clients.get(stringifyId(e?.self_id))?.reportMessage(e).catch(err => logger.error(`[${PLUGIN_NAME}] 上报消息失败`, err)))
-    Bot.on("notice", e => clients.get(stringifyId(e?.self_id))?.reportMeta(e).catch(err => logger.error(`[${PLUGIN_NAME}] 上报元事件失败`, err)))
+    Bot.on("message", e => {
+        for (const client of clients.values()) client.reportMessage(e).catch(err => logger.error(`[${PLUGIN_NAME}] 上报消息失败`, err))
+    })
+    Bot.on("notice", e => {
+        for (const client of clients.values()) client.reportMeta(e).catch(err => logger.error(`[${PLUGIN_NAME}] 上报元事件失败`, err))
+    })
     Bot.on("connect", e => startAdapter(stringifyId(e?.self_id)))
     Bot.on("gscore-adapter.reload", () => startAdapter().catch(err => logger.error(`[${PLUGIN_NAME}] 自动重载失败`, err)))
 }
@@ -82,24 +103,17 @@ async function startAdapter(onlySelfId = "") {
         return
     }
 
-    if (onlySelfId) {
-        const botId = stringifyId(onlySelfId)
-        if (!startClient(config, botId)) {
-            clients.get(botId)?.stop()
-            clients.delete(botId)
-        }
-        return
-    }
-
     const onlineBotIds = new Set(getOnlineBotIds())
+    if (onlySelfId) onlineBotIds.add(stringifyId(onlySelfId))
+    const runtimeConfigs = buildRuntimeConfigs(config, onlineBotIds)
     const keepBotIds = new Set()
-    for (const botId of onlineBotIds) {
-        if (startClient(config, botId)) keepBotIds.add(stringifyId(botId))
+    for (const [key, runtimeConfig] of runtimeConfigs) {
+        if (startClient(key, runtimeConfig)) keepBotIds.add(key)
     }
-    for (const [botId, client] of clients.entries()) {
-        if (keepBotIds.has(botId)) continue
+    for (const [key, client] of clients.entries()) {
+        if (keepBotIds.has(key)) continue
         client.stop()
-        clients.delete(botId)
+        clients.delete(key)
     }
 }
 
@@ -131,7 +145,7 @@ export class GscoreAdapterStatus extends plugin {
         if (!(await this.requireMaster())) return false
         const lines = [...clients.entries()].map(([botId, client]) => {
             const state = client.connected ? "已连接" : client.connecting ? "连接中" : "未连接"
-            return `${botId}：${state} ${client.url.replace(/token=[^&]+/, "token=***")}`
+            return `${botId}：${state}（${client.selfIds?.size || 0} 个 Bot） ${client.url.replace(/token=[^&]+/, "token=***")}`
         })
         await this.reply(`Gscore-Adapter：${lines.length ? "\n" + lines.join("\n") : "未启用任何 Bot"}`, true)
         return true
@@ -150,7 +164,7 @@ export class GscoreAdapterStatus extends plugin {
         const enabledBotCount = Object.values(config.bots || {}).filter(item => item?.enable).length
         const disabledGroupCount = groupRules.filter(rule => rule?.enabled === false).length
         const blackUserCount = groupRules.reduce((sum, rule) => sum + new Set(rule?.blackUsers || []).size, 0)
-        const connectedCount = [...clients.values()].filter(client => client.connected).length
+        const connectedCount = [...clients.values()].reduce((sum, client) => sum + (client.connected ? client.selfIds?.size || 0 : 0), 0)
         await this.reply([
             "🦊 早柚适配器状态",
             `启用 Bot：${enabledBotCount} 个（已连接 ${connectedCount} 个）`,
@@ -218,6 +232,11 @@ export class GscoreAdapterStatus extends plugin {
             client.config.groupRules = config.groupRules
             client.config.silentUnauthorized = config.silentUnauthorized
             client.config.masterBypassGroupDisabled = config.masterBypassGroupDisabled
+            for (const item of client.botConfigs?.values?.() || []) {
+                item.groupRules = config.groupRules
+                item.silentUnauthorized = config.silentUnauthorized
+                item.masterBypassGroupDisabled = config.masterBypassGroupDisabled
+            }
         }
         return rule
     }

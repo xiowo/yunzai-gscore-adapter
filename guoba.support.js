@@ -27,6 +27,7 @@ function flattenBotConfig(bots = {}) {
         enable: !!item?.enable,
         coreUrl: item?.coreUrl || "",
         token: item?.token || "",
+        routeBotId: item?.routeBotId || "",
     }))
 }
 
@@ -39,6 +40,7 @@ function restoreBotConfig(botList = []) {
             enable: !!item.enable,
             coreUrl: String(item.coreUrl || "").trim(),
             token: String(item.token || ""),
+            routeBotId: String(item.routeBotId || "").trim(),
         }
     }
     return bots
@@ -103,6 +105,7 @@ export function supportGuoba() {
                 { field: "enable", label: "启用适配器", component: "Switch", bottomHelpMessage: "默认开启；是否连接由下方 Bot 单独开关决定。" },
                 { field: "coreUrl", label: "全局连接地址", component: "Input", componentProps: { placeholder: "ws://127.0.0.1:8765" } },
                 { field: "token", label: "全局 Token", component: "InputPassword", componentProps: { placeholder: "core 配置 WS_TOKEN 时填写" } },
+                { field: "routeBotId", label: "全局 WS BotID", component: "Input", componentProps: { placeholder: "Yunzai" }, bottomHelpMessage: "所有未单独配置连接的启用 Bot 共用该 WS BotID。" },
                 { field: "reconnectInterval", label: "重连间隔(ms)", component: "InputNumber", componentProps: { min: 1000, step: 1000 } },
                 { field: "silentUnauthorized", label: "无权限静默", component: "Switch", bottomHelpMessage: "开启后无权限用户执行插件命令不返回提示。" },
                 { field: "masterBypassGroupDisabled", label: "主人正常转发", component: "Switch", bottomHelpMessage: "开启后即使当前群被禁用，主人消息仍会转发给早柚。" },
@@ -123,6 +126,7 @@ export function supportGuoba() {
                             { field: "enable", label: "启用连接", component: "Switch", bottomHelpMessage: "默认关闭，开启后该 Bot 才会连接 gsuid-core" },
                             { field: "coreUrl", label: "连接地址", component: "Input", componentProps: { placeholder: "留空使用全局连接地址" } },
                             { field: "token", label: "Token", component: "InputPassword", componentProps: { placeholder: "留空使用全局 Token" } },
+                            { field: "routeBotId", label: "WS BotID", component: "Input", componentProps: { placeholder: "留空使用全局 WS BotID" } },
                         ],
                     },
                 },

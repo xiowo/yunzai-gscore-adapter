@@ -34,6 +34,7 @@ function normalizeConfig(body = {}, currentConfig = {}) {
             enable: item?.enable === true,
             coreUrl: normalizeWsUrl(item?.coreUrl, { allowEmpty: true }),
             token: String(item?.token || ""),
+            routeBotId: stringifyId(item?.routeBotId).trim(),
         }
     }
 
@@ -45,6 +46,7 @@ function normalizeConfig(body = {}, currentConfig = {}) {
         enable: body.enable === true,
         coreUrl: normalizeWsUrl(body.coreUrl || DEFAULT_CONFIG.coreUrl),
         token: String(body.token || ""),
+        routeBotId: stringifyId(body.routeBotId || DEFAULT_CONFIG.routeBotId || "Yunzai").trim(),
         reconnectInterval: Math.round(reconnectInterval),
         reportPrivate: body.reportPrivate === true,
         reportGroup: body.reportGroup === true,

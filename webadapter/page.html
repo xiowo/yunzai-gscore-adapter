@@ -45,7 +45,7 @@
                         <div class="section-head">
                             <div>
                                 <h2>Bot 连接</h2>
-                                <p>独立地址和 Token 留空时继承全局配置。</p>
+                                <p>默认共用一个 WS 连接；填写独立连接项时单独连接。</p>
                             </div>
                             <span id="botCount" class="count">0 个已启用</span>
                         </div>
@@ -89,6 +89,8 @@
                                     <label class="field"><span>全局 Token</span><span class="password-wrap"><input
                                                 name="token" type="password" placeholder="未配置可留空" /><button
                                                 class="password-btn" type="button">显示</button></span></label>
+                                    <label class="field"><span>全局 WS BotID</span><input name="routeBotId"
+                                            placeholder="Yunzai" /></label>
                                     <label class="field"><span>重连间隔</span><span class="suffix-input"><input
                                                 name="reconnectInterval" type="number" min="1000" max="3600000"
                                                 step="1000" /><b>ms</b></span></label>
@@ -235,6 +237,7 @@
                 enable: form.elements.enable.checked,
                 coreUrl: buildCoreUrl(),
                 token: form.elements.token.value,
+                routeBotId: form.elements.routeBotId.value.trim(),
                 reconnectInterval: Number(form.elements.reconnectInterval.value),
                 reportPrivate: form.elements.reportPrivate.checked,
                 reportGroup: form.elements.reportGroup.checked,
@@ -246,6 +249,7 @@
                     enable: Boolean(bot.enable),
                     coreUrl: String(bot.coreUrl || "").trim(),
                     token: String(bot.token || ""),
+                    routeBotId: String(bot.routeBotId || "").trim(),
                 })),
             }
         }
@@ -268,7 +272,7 @@
             setCoreProtocol(coreUrl.protocol)
             form.elements.coreHost.value = coreUrl.host
             form.elements.corePort.value = coreUrl.port
-            for (const key of ["token", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
+            for (const key of ["token", "routeBotId", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
             loading = false
         }
 
@@ -295,7 +299,7 @@
                     <span class="tag ${bot.online ? "online" : "offline"}">${bot.online ? "在线" : "离线"}</span>
                     <span class="tag ${bot.enable ? "enabled" : ""}">${bot.enable ? "连接已启用" : "连接未启用"}</span>
                   </div>
-                  <div class="bot-meta"><span>ID: ${escapeHtml(bot.botId)}</span><span>路由: Yunzai-${escapeHtml(bot.botId)}</span></div>
+                  <div class="bot-meta"><span>ID: ${escapeHtml(bot.botId)}</span><span>WS: ${escapeHtml(bot.routeBotId || form.elements.routeBotId.value || "Yunzai")}</span></div>
                 </div>
                 <div class="bot-actions">
                   <button class="settings-btn" type="button" data-action="settings" title="独立连接设置" aria-label="独立连接设置">⚙</button>
@@ -304,6 +308,7 @@
                 <div class="bot-options">
                   <label class="field"><span>独立连接地址</span><input data-field="coreUrl" value="${escapeHtml(bot.coreUrl || "")}" placeholder="留空继承全局地址" /></label>
                   <label class="field"><span>独立 Token</span><span class="password-wrap"><input data-field="token" type="password" value="${escapeHtml(bot.token || "")}" placeholder="留空继承全局 Token" /><button class="password-btn" type="button">显示</button></span></label>
+                  <label class="field"><span>独立 WS BotID</span><input data-field="routeBotId" value="${escapeHtml(bot.routeBotId || "")}" placeholder="留空共用全局 WS BotID" /></label>
                 </div>
               </article>`
             }).join("")
