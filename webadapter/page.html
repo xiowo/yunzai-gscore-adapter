@@ -67,6 +67,10 @@
                                     <span><strong>启用适配器</strong><small>关闭后会断开所有现有连接。</small></span>
                                     <span class="toggle"><input name="enable" type="checkbox" /><i></i></span>
                                 </label>
+                                <label class="switch-card wide">
+                                    <span><strong>新增 Bot 默认启用</strong><small>开启后新登录/新发现的 Bot 默认启用。</small></span>
+                                    <span class="toggle"><input name="defaultBotEnable" type="checkbox" /><i></i></span>
+                                </label>
                                 <div class="form-grid">
                                     <div class="field wide"><span>全局连接地址</span>
                                         <div class="connection-parts">
@@ -235,6 +239,7 @@
         function collectConfig() {
             return {
                 enable: form.elements.enable.checked,
+                defaultBotEnable: form.elements.defaultBotEnable.checked,
                 coreUrl: buildCoreUrl(),
                 token: form.elements.token.value,
                 routeBotId: form.elements.routeBotId.value.trim(),
@@ -265,7 +270,7 @@
 
         function fillConfig(config) {
             loading = true
-            for (const key of ["enable", "reportPrivate", "reportGroup", "reportMeta", "silentUnauthorized", "masterBypassGroupDisabled"]) {
+            for (const key of ["enable", "defaultBotEnable", "reportPrivate", "reportGroup", "reportMeta", "silentUnauthorized", "masterBypassGroupDisabled"]) {
                 form.elements[key].checked = Boolean(config[key])
             }
             const coreUrl = parseCoreUrl(config.coreUrl)

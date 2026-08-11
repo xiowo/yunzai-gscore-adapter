@@ -44,6 +44,7 @@ function normalizeConfig(body = {}, currentConfig = {}) {
     }
     return {
         enable: body.enable === true,
+        defaultBotEnable: body.defaultBotEnable === true,
         coreUrl: normalizeWsUrl(body.coreUrl || DEFAULT_CONFIG.coreUrl),
         token: String(body.token || ""),
         routeBotId: stringifyId(body.routeBotId || DEFAULT_CONFIG.routeBotId || "Yunzai").trim(),
@@ -69,7 +70,7 @@ async function getPayload() {
     return {
         ok: true,
         config,
-        bots: botIds.map(botId => ({ ...getBotInfo(botId), ...(config.bots?.[botId] || {}) })),
+        bots: botIds.map(botId => ({ enable: config.defaultBotEnable, ...getBotInfo(botId), ...(config.bots?.[botId] || {}) })),
     }
 }
 

@@ -1,4 +1,4 @@
-import fs from "node:fs"
+﻿import fs from "node:fs"
 import YAML from "yaml"
 import _ from "lodash"
 import { CONFIG_FILE, DEFAULT_CONFIG, PLUGIN_NAME } from "./lib/constants.js"
@@ -62,15 +62,16 @@ function getLoginBotIds() {
     return []
 }
 
-function mergeLoginBots(bots = {}) {
-    const merged = new Map(flattenBotConfig(bots).map(item => [String(item.botId), item]))
+function mergeLoginBots(config = {}) {
+    const merged = new Map(flattenBotConfig(config.bots || {}).map(item => [String(item.botId), item]))
     for (const botId of getLoginBotIds()) {
         if (!merged.has(botId)) {
             merged.set(botId, {
                 botId,
-                enable: false,
+                enable: config.defaultBotEnable !== false,
                 coreUrl: "",
                 token: "",
+                routeBotId: "",
             })
         }
     }
@@ -103,6 +104,7 @@ export function supportGuoba() {
             schemas: [
                 { label: "全局配置", component: "SOFT_GROUP_BEGIN" },
                 { field: "enable", label: "启用适配器", component: "Switch", bottomHelpMessage: "默认开启；是否连接由下方 Bot 单独开关决定。" },
+                { field: "defaultBotEnable", label: "新增 Bot 默认启用", component: "Switch", bottomHelpMessage: "开启后新登录/新发现的 Bot 默认启用；关闭后默认不启用。" },
                 { field: "coreUrl", label: "全局连接地址", component: "Input", componentProps: { placeholder: "ws://127.0.0.1:8765" } },
                 { field: "token", label: "全局 Token", component: "InputPassword", componentProps: { placeholder: "core 配置 WS_TOKEN 时填写" } },
                 { field: "routeBotId", label: "全局 WS BotID", component: "Input", componentProps: { placeholder: "Yunzai" }, bottomHelpMessage: "所有未单独配置连接的启用 Bot 共用该 WS BotID。" },
@@ -117,13 +119,13 @@ export function supportGuoba() {
                     field: "botList",
                     label: "Bot 列表",
                     component: "GSubForm",
-                    bottomHelpMessage: "会自动带出当前已登录 Bot；启用后才会连接 core。自定义地址/Token 留空时使用全局配置，路由 ID 固定为 Yunzai-{qq号}。",
+                    bottomHelpMessage: "会自动带出当前已登录 Bot；新增 Bot 默认启用受全局开关控制。自定义地址/Token/WS BotID 留空时使用全局配置。",
                     componentProps: {
                         multiple: true,
                         modalProps: { title: "Bot 连接配置" },
                         schemas: [
                             { field: "botId", label: "Bot QQ", component: "Input", required: true, bottomHelpMessage: "填写当前 Yunzai 已登录的 Bot QQ" },
-                            { field: "enable", label: "启用连接", component: "Switch", bottomHelpMessage: "默认关闭，开启后该 Bot 才会连接 gsuid-core" },
+                            { field: "enable", label: "启用连接", component: "Switch", bottomHelpMessage: "控制该 Bot 是否连接 gsuid-core" },
                             { field: "coreUrl", label: "连接地址", component: "Input", componentProps: { placeholder: "留空使用全局连接地址" } },
                             { field: "token", label: "Token", component: "InputPassword", componentProps: { placeholder: "留空使用全局 Token" } },
                             { field: "routeBotId", label: "WS BotID", component: "Input", componentProps: { placeholder: "留空使用全局 WS BotID" } },
@@ -135,7 +137,7 @@ export function supportGuoba() {
                 const config = readConfig()
                 return {
                     ...config,
-                    botList: mergeLoginBots(config.bots),
+                    botList: mergeLoginBots(config),
                 }
             },
             setConfigData(data, { Result }) {

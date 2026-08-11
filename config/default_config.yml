@@ -1,4 +1,5 @@
 enable: true
+defaultBotEnable: true
 coreUrl: ws://127.0.0.1:8765
 token: ""
 routeBotId: Yunzai
