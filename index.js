@@ -1,5 +1,6 @@
 import fs from "node:fs/promises"
 import path from "node:path"
+import { update as FrameworkUpdate } from "../other/update.js"
 import { GscoreClient } from "./lib/client.js"
 import { getBotRuntimeConfig, isBotEnabled, loadConfig, saveConfig } from "./lib/config.js"
 import { PLUGIN_DIR, PLUGIN_NAME } from "./lib/constants.js"
@@ -279,15 +280,10 @@ export class GscoreAdapterStatus extends plugin {
         }
         updating = true
         try {
-            await this.reply("开始更新 Gscore-Adapter 插件本体", true)
-            const ret = await Bot.exec("git pull", { cwd: PLUGIN_DIR })
-            const output = `${ret.stdout || ""}${ret.stderr ? `\n${ret.stderr}` : ""}`.trim()
-            if (ret.error) {
-                await this.reply(`❌ Gscore-Adapter 更新失败：\n${output || ret.error.message}`, true)
-                return false
-            }
-            await this.reply(output || "✅ Gscore-Adapter 已是最新", true)
-            return true
+            const updater = new FrameworkUpdate()
+            updater.e = { ...this.e, msg: `#更新${PLUGIN_NAME}` }
+            updater.reply = this.reply.bind(this)
+            return updater.update()
         } finally {
             updating = false
         }

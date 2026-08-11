@@ -1,7 +1,5 @@
-import fs from "node:fs/promises"
-import YAML from "yaml"
-import { CONFIG_FILE, DEFAULT_CONFIG } from "../lib/constants.js"
-import { loadConfig } from "../lib/config.js"
+import { DEFAULT_CONFIG } from "../lib/constants.js"
+import { loadConfig, saveConfig } from "../lib/config.js"
 import { getOnlineBotIds, stringifyId } from "../lib/utils.js"
 
 function getBotInfo(botId) {
@@ -95,7 +93,7 @@ export function init(ctx) {
     ctx.registerApi("post", "/gscore-adapter/config", async (req, res) => {
         try {
             const config = normalizeConfig(req.body, await loadConfig())
-            await fs.writeFile(CONFIG_FILE, YAML.stringify(config), "utf8")
+            await saveConfig(config)
             emitReload()
             res.json({ ...(await getPayload()), message: "配置已保存并触发重载" })
         } catch (error) {

@@ -1,10 +1,11 @@
 import fs from "node:fs"
 import YAML from "yaml"
+import _ from "lodash"
 import { CONFIG_FILE, DEFAULT_CONFIG, PLUGIN_NAME } from "./lib/constants.js"
 
 function readConfig() {
     try {
-        return { ...DEFAULT_CONFIG, ...(YAML.parse(fs.readFileSync(CONFIG_FILE, "utf8")) || {}) }
+        return _.merge({}, DEFAULT_CONFIG, YAML.parse(fs.readFileSync(CONFIG_FILE, "utf8")) || {})
     } catch {
         return { ...DEFAULT_CONFIG }
     }
