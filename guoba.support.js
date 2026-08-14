@@ -135,6 +135,8 @@ export function supportGuoba() {
                 { field: "reportPrivate", label: "上报私聊", component: "Switch" },
                 { field: "reportGroup", label: "上报群聊", component: "Switch" },
                 { field: "reportMeta", label: "上报 Meta 事件", component: "Switch" },
+                { field: "uploadLocalMarkdownImages", label: "上传 Markdown 本地图片", component: "Switch", bottomHelpMessage: "开启后将 Markdown 中的本地图片上传图床，再替换地址发送。" },
+                { field: "gsuidCoreRoot", label: "早柚根目录", component: "Input", componentProps: { placeholder: "可选，例如 D:/gsuid_core" }, bottomHelpMessage: "用于解析 /gsuid_core/... 本地图片路径；同目录部署可留空。" },
                 { label: "消息增强", component: "SOFT_GROUP_BEGIN" },
                 { field: "quickEggCheck", label: "快捷查蛋", component: "Switch", bottomHelpMessage: "开启后，将指定 Bot 在群聊或私聊收到的 0.07m 0.146kg 等消息自动补为精灵蛋查询。" },
                 { field: "quickEggCheckGlobal", label: "快捷查蛋全局启用", component: "Switch", bottomHelpMessage: "开启后任意 Bot 均启用快捷查蛋，无需填写下方账号。" },

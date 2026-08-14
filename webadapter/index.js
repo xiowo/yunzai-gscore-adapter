@@ -70,6 +70,8 @@ function normalizeConfig(body = {}, currentConfig = {}) {
         reportPrivate: body.reportPrivate === true,
         reportGroup: body.reportGroup === true,
         reportMeta: body.reportMeta === true,
+        uploadLocalMarkdownImages: body.uploadLocalMarkdownImages === true,
+        gsuidCoreRoot: String(body.gsuidCoreRoot || "").trim(),
         silentUnauthorized: body.silentUnauthorized === true,
         masterBypassGroupDisabled: body.masterBypassGroupDisabled === true,
         quickEggCheck: body.quickEggCheck === undefined ? currentConfig.quickEggCheck === true : body.quickEggCheck === true,

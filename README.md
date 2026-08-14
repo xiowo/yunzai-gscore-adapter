@@ -15,6 +15,7 @@
 - **🧩 合并转发**: OneBot 下 `node` 按合并转发发送，节点身份使用当前 Bot QQ 号和昵称；QQBot 下自动降级为单条消息逐条发送。
 - **↩️ 撤回回执**: 支持 GScore `wait_recall` 场景，发送后回传 Yunzai 消息 ID。
 - **🛡️ 控制包支持**: 支持 GScore 下发撤回、禁言等控制包。
+- **Markdown 本地图片**: 可将 GScore Markdown 中的本地图片上传图床后再发送。
 
 ## 🛠️ 安装插件
 
@@ -43,6 +44,8 @@ pnpm i
 | **上报私聊** | 是否向 GScore 上报私聊消息 | `true` |
 | **上报群聊** | 是否向 GScore 上报群聊消息 | `true` |
 | **上报 Meta 事件** | 是否向 GScore 上报进群、退群、戳一戳等事件 | `true` |
+| **上传 Markdown 本地图片** | 将 Markdown 本地图片调用 `Bot.imageToUrl` 上传后替换地址 | `false` |
+| **早柚根目录** | 用于解析 `/gsuid_core/...` 图片路径；同目录部署可留空 | `空` |
 | **快捷查蛋** | 指定 Bot 在群聊或私聊发送尺寸/重量时自动补全 `精灵蛋` 前缀 | `false` |
 | **快捷查蛋全局启用** | 任意 Bot 均启用快捷查蛋，开启后无需配置 Bot 账号 | `false` |
 | **转发前缀** | 按 Bot 账号为上报文本添加前缀 | `[]` |
@@ -65,6 +68,8 @@ masterBypassGroupDisabled: false
 reportPrivate: true
 reportGroup: true
 reportMeta: true
+uploadLocalMarkdownImages: false
+gsuidCoreRoot: ""
 quickEggCheck: true
 quickEggCheckGlobal: false
 quickEggCheckBots:
@@ -107,6 +112,8 @@ bots:
 ```
 
 ### 消息增强规则
+
+- 开启 **上传 Markdown 本地图片** 后，`![图片](/gsuid_core/data/...)` 等本地绝对路径会先通过 `Bot.imageToUrl` 上传，再替换为图床 URL。HTTP、base64、data 和 file 地址不会处理；文件不存在或上传失败时保留原文。
 
 - **快捷查蛋**同时处理群聊和私聊。格式与 ws-plugin 一致，例如 `0.07m 0.146kg`、`炫彩 0.07 0.146kg`；已经以 `精灵蛋` 或 `查蛋` 开头的消息不会重复补全。
 - **转发前缀**会先去掉消息开头的空格和 `/` 再添加。`skipIfHasPrefix` 开启时，字母或数字开头默认视作已经有命令前缀；`forceAddPrefix` 可覆盖该判断；`noPrefixCommands` 优先级最高。

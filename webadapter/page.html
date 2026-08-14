@@ -132,6 +132,13 @@
                                 <label class="switch-card"><span><strong>上报 Meta
                                             事件</strong><small>转发通知和状态事件</small></span><span class="toggle"><input
                                             name="reportMeta" type="checkbox" /><i></i></span></label>
+                                <label class="switch-card"><span><strong>上传 Markdown
+                                            本地图片</strong><small>上传图床后替换本地路径再发送</small></span><span class="toggle"><input
+                                            name="uploadLocalMarkdownImages" type="checkbox" /><i></i></span></label>
+                            </div>
+                            <div class="panel-body">
+                                <label class="field wide"><span>早柚根目录</span><input name="gsuidCoreRoot"
+                                        placeholder="可选，例如 D:/gsuid_core；同目录部署可留空" /></label>
                             </div>
                         </section>
                     </section>
@@ -397,6 +404,8 @@
                 reportPrivate: form.elements.reportPrivate.checked,
                 reportGroup: form.elements.reportGroup.checked,
                 reportMeta: form.elements.reportMeta.checked,
+                uploadLocalMarkdownImages: form.elements.uploadLocalMarkdownImages.checked,
+                gsuidCoreRoot: form.elements.gsuidCoreRoot.value.trim(),
                 silentUnauthorized: form.elements.silentUnauthorized.checked,
                 masterBypassGroupDisabled: form.elements.masterBypassGroupDisabled.checked,
                 quickEggCheck: form.elements.quickEggCheck.checked,
@@ -443,14 +452,14 @@
 
         function fillConfig(config) {
             loading = true
-            for (const key of ["enable", "defaultBotEnable", "reportPrivate", "reportGroup", "reportMeta", "silentUnauthorized", "masterBypassGroupDisabled", "quickEggCheck"]) {
+            for (const key of ["enable", "defaultBotEnable", "reportPrivate", "reportGroup", "reportMeta", "uploadLocalMarkdownImages", "silentUnauthorized", "masterBypassGroupDisabled", "quickEggCheck"]) {
                 form.elements[key].checked = Boolean(config[key])
             }
             const coreUrl = parseCoreUrl(config.coreUrl)
             setCoreProtocol(coreUrl.protocol)
             form.elements.coreHost.value = coreUrl.host
             form.elements.corePort.value = coreUrl.port
-            for (const key of ["token", "routeBotId", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
+            for (const key of ["token", "routeBotId", "reconnectInterval", "gsuidCoreRoot"]) form.elements[key].value = config[key] ?? ""
             quickEggTargets = config.quickEggCheckGlobal === true ? ["*"] : splitList(config.quickEggCheckBots)
             prefixRules = rulesFromConfig(config.gsuidBotPrefix)
             disconnectRules = rulesFromConfig(config.gsuidDisconnectReply)
