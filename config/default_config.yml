@@ -9,5 +9,11 @@ reportGroup: true
 reportMeta: true
 silentUnauthorized: false
 masterBypassGroupDisabled: false
+quickEggCheck: false
+quickEggCheckGlobal: false
+quickEggCheckBots: []
+gsuidBotPrefix: []
+gsuidDisconnectReply: []
+gsuidCommandMaintenanceReply: []
 groupRules: {}
 bots: {}

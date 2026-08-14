@@ -51,7 +51,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
     font: inherit;
 }
 
@@ -451,6 +452,8 @@ body.theme-cool .bot-avatar-fallback {
     align-items: center;
     padding: 10px 16px;
     border-bottom: 1px solid var(--line);
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .panel-body {
@@ -476,9 +479,9 @@ body.theme-cool .bot-avatar-fallback {
     font-weight: 700;
 }
 
-.field input {
+.field input,
+.field textarea {
     width: 100%;
-    height: 36px;
     min-width: 0;
     padding: 0 10px;
     border: 1px solid var(--line);
@@ -489,9 +492,243 @@ body.theme-cool .bot-avatar-fallback {
     font-weight: 400;
 }
 
-.field input:focus {
+.field input {
+    height: 36px;
+}
+
+.field textarea {
+    min-height: 64px;
+    padding: 9px 10px;
+    resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
     border-color: var(--primary-2);
     box-shadow: 0 0 0 3px rgba(240, 139, 85, .10);
+}
+
+.enhance-field {
+    margin-top: 14px;
+}
+
+.scope-summary,
+.rule-overview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    min-height: 58px;
+    padding: 11px 13px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.scope-summary {
+    margin-top: 12px;
+}
+
+.scope-summary:hover,
+.rule-overview:hover {
+    border-color: var(--primary-2);
+    background: var(--soft);
+}
+
+.scope-summary strong,
+.rule-overview strong,
+.rule-card-head strong {
+    display: block;
+    font-size: 13px;
+}
+
+.scope-summary small,
+.rule-overview small,
+.rule-card-head small {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.scope-summary-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.scope-summary-action i {
+    width: 7px;
+    height: 7px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.add-rule-btn,
+.remove-rule-btn {
+    flex: 0 0 auto;
+    height: 32px;
+    padding: 0 11px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.add-rule-btn:hover {
+    border-color: var(--primary-2);
+    background: var(--soft);
+}
+
+.remove-rule-btn {
+    color: var(--red);
+}
+
+.rule-list {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+}
+
+.rule-card {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--panel-soft);
+}
+
+.rule-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.rule-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px;
+}
+
+.compact-rule-card .rule-card-head {
+    background: var(--surface);
+}
+
+.rule-overview {
+    border: 0;
+    border-radius: 0;
+    background: var(--panel-soft);
+}
+
+.subpage-head {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.subpage-head h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.subpage-head p {
+    margin: 3px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.back-btn,
+.primary-btn {
+    height: 34px;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.back-btn {
+    width: 34px;
+    padding: 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 25px;
+    line-height: 1;
+}
+
+.back-btn:hover {
+    border-color: var(--primary-2);
+    background: var(--soft);
+    color: var(--primary);
+}
+
+.primary-btn {
+    padding: 0 14px;
+    border: 0;
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.global-scope-card {
+    background: var(--primary-soft);
+}
+
+.scope-bot-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.scope-bot-card {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    cursor: pointer;
+}
+
+.scope-bot-card .bot-title {
+    margin-bottom: 5px;
+}
+
+.scope-bot-card.scope-disabled {
+    opacity: .55;
+    cursor: default;
+}
+
+.scope-bot-card.scope-disabled:hover {
+    border-color: var(--line);
+    box-shadow: none;
+}
+
+#editorSettingsPanel[hidden] {
+    display: none;
+}
+
+.rule-empty {
+    padding: 24px 12px;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
 }
 
 .connection-parts {
@@ -777,7 +1014,7 @@ body.theme-cool .bot-avatar-fallback {
 
     .mobile-tabs {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 6px;
         padding: 8px 12px;
         border-bottom: 1px solid var(--line);
@@ -805,8 +1042,18 @@ body.theme-cool .bot-avatar-fallback {
 
     .form-grid,
     .switch-grid,
-    .bot-options {
+    .bot-options,
+    .rule-grid {
         grid-template-columns: 1fr;
+    }
+
+    .subpage-head {
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+    }
+
+    .scope-summary,
+    .rule-overview {
+        align-items: flex-start;
     }
 
     .connection-parts {

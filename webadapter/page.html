@@ -16,6 +16,8 @@
                 <button class="nav-item active" type="button" data-page="bots"><span aria-hidden="true">▦</span>Bot
                     连接</button>
                 <button class="nav-item" type="button" data-page="basic"><span aria-hidden="true">⚙</span>基础配置</button>
+                <button class="nav-item" type="button" data-page="enhance"><span
+                        aria-hidden="true">✦</span>消息增强</button>
             </nav>
             <div class="sidebar-footer">
                 <div class="status-pill"><span class="status-dot"></span><span id="footerStatus">正在读取</span></div>
@@ -37,6 +39,7 @@
             <nav class="mobile-tabs" aria-label="配置页面">
                 <button class="mobile-tab active" type="button" data-page="bots">Bot 连接</button>
                 <button class="mobile-tab" type="button" data-page="basic">基础配置</button>
+                <button class="mobile-tab" type="button" data-page="enhance">消息增强</button>
             </nav>
 
             <section class="content">
@@ -132,6 +135,101 @@
                             </div>
                         </section>
                     </section>
+
+                    <section id="page-enhance" class="page">
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>快捷查蛋</h2>
+                                    <p>将指定 Bot 收到的尺寸和重量自动补为精灵蛋查询。</p>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <label class="switch-card wide">
+                                    <span><strong>启用快捷查蛋</strong><small>例如将 0.07m 0.146kg 转为“精灵蛋0.07m
+                                            0.146kg”。</small></span>
+                                    <span class="toggle"><input name="quickEggCheck" type="checkbox" /><i></i></span>
+                                </label>
+                                <button class="scope-summary" type="button" data-edit-scope="quick">
+                                    <span><strong>生效 Bot 账号</strong><small id="quickEggScopeSummary">暂未选择
+                                            Bot</small></span>
+                                    <span class="scope-summary-action">配置账号 <i></i></span>
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>转发前缀</h2>
+                                    <p>按 Bot 账号为上报到 GScore 的文本自动添加前缀。</p>
+                                </div>
+                                <button class="add-rule-btn" type="button" data-add-rule="prefix">添加规则</button>
+                            </div>
+                            <div id="prefixRuleList" class="rule-list"></div>
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>断连维护回复</h2>
+                                    <p>连接连续断开达到指定次数后，命中命令自动回复并停止上报。</p>
+                                </div>
+                                <button class="add-rule-btn" type="button" data-add-rule="disconnect">添加规则</button>
+                            </div>
+                            <div id="disconnectRuleList" class="rule-list"></div>
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>命令维护回复</h2>
+                                    <p>命中指定命令时直接回复维护消息，不再上报到 GScore。</p>
+                                </div>
+                                <button class="add-rule-btn" type="button" data-add-rule="command">添加规则</button>
+                            </div>
+                            <div id="commandRuleList" class="rule-list"></div>
+                        </section>
+                    </section>
+
+                    <section id="page-enhance-editor" class="page subpage">
+                        <div class="subpage-head">
+                            <button id="editorBackBtn" class="back-btn" type="button" title="返回消息增强"
+                                aria-label="返回消息增强">‹</button>
+                            <div>
+                                <h2 id="editorTitle">配置生效 Bot</h2>
+                                <p id="editorSubtitle">选择该配置需要生效的 Bot</p>
+                            </div>
+                            <button id="editorDoneBtn" class="primary-btn" type="button">完成</button>
+                        </div>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>生效范围</h2>
+                                    <p>全局启用后，无论 Bot 是否显示在列表中都会遵循这条配置。</p>
+                                </div>
+                                <span id="editorTargetCount" class="count">0 个 Bot</span>
+                            </div>
+                            <div class="panel-body">
+                                <label class="switch-card wide global-scope-card">
+                                    <span><strong>全局启用</strong><small>开启后任意 Bot 均遵循这条配置，下面的单独选择将暂停生效。</small></span>
+                                    <span class="toggle"><input id="editorGlobalScope" type="checkbox" /><i></i></span>
+                                </label>
+                                <div id="scopeBotList" class="scope-bot-list"></div>
+                            </div>
+                        </section>
+
+                        <section id="editorSettingsPanel" class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>规则设置</h2>
+                                    <p id="editorSettingsHelp">设置该规则的处理方式。</p>
+                                </div>
+                            </div>
+                            <div id="editorSettings" class="rule-grid"></div>
+                        </section>
+                    </section>
                 </form>
             </section>
         </main>
@@ -152,8 +250,19 @@
         const THEME_KEY = "gscore-adapter-theme"
 
         let bots = []
+        let quickEggTargets = []
+        let prefixRules = []
+        let disconnectRules = []
+        let commandRules = []
+        let editorState = null
         let savedSnapshot = ""
         let loading = false
+
+        const ruleMeta = {
+            prefix: { title: "转发前缀", subtitle: "选择生效 Bot 并设置上报到 GScore 前添加的前缀。" },
+            disconnect: { title: "断连维护回复", subtitle: "选择生效 Bot 并设置断连后的命令拦截与回复。" },
+            command: { title: "命令维护回复", subtitle: "选择生效 Bot 并设置维护中的命令与回复。" },
+        }
 
         function escapeHtml(value) {
             return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -231,9 +340,50 @@
         function switchPage(page) {
             document.querySelectorAll("[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page))
             document.querySelectorAll(".page").forEach(el => el.classList.toggle("active", el.id === `page-${page}`))
-            const basic = page === "basic"
-            document.getElementById("pageTitle").textContent = basic ? "基础配置" : "Bot 连接"
-            document.getElementById("pageSubtitle").textContent = basic ? "设置全局连接与消息处理方式" : "选择需要接入早柚核心的 Yunzai Bot"
+            const titleMap = { bots: "Bot 连接", basic: "基础配置", enhance: "消息增强" }
+            const subtitleMap = {
+                bots: "选择需要接入早柚核心的 Yunzai Bot",
+                basic: "设置全局连接与消息处理方式",
+                enhance: "配置快捷查蛋、转发前缀和维护回复",
+            }
+            document.getElementById("pageTitle").textContent = titleMap[page] || titleMap.bots
+            document.getElementById("pageSubtitle").textContent = subtitleMap[page] || subtitleMap.bots
+        }
+
+        function splitList(value) {
+            const values = Array.isArray(value) ? value : [value]
+            return [...new Set(values.flatMap(item => String(item || "").split(/[\n,，]+/)).map(item => item.trim()).filter(Boolean))]
+        }
+
+        function joinList(value) {
+            return (Array.isArray(value) ? value : splitList(value)).join("\n")
+        }
+
+        function rulesFromConfig(rules = []) {
+            if (!Array.isArray(rules)) return []
+            return rules.map(rule => ({
+                ...(rule || {}),
+                targets: rule?.global === true ? ["*"] : splitList(rule?.botIds),
+            }))
+        }
+
+        function serializeRuleTargets(rule) {
+            const global = rule.targets?.includes("*") === true
+            return { global, botIds: global ? [] : splitList(rule.targets) }
+        }
+
+        function getBotLabel(botId) {
+            const bot = bots.find(item => String(item.botId) === String(botId))
+            return bot?.name || `Bot ${botId}`
+        }
+
+        function getScopeSummary(targets = []) {
+            if (targets.includes("*")) return "全部 Bot（全局启用）"
+            const selected = splitList(targets)
+            if (!selected.length) return "暂未选择 Bot"
+            const labels = selected.slice(0, 2).map(getBotLabel)
+            const suffix = selected.length > 2 ? ` 等 ${selected.length} 个 Bot` : `${selected.length} 个 Bot`
+            return `${labels.join("、")} · ${suffix}`
         }
 
         function collectConfig() {
@@ -249,6 +399,29 @@
                 reportMeta: form.elements.reportMeta.checked,
                 silentUnauthorized: form.elements.silentUnauthorized.checked,
                 masterBypassGroupDisabled: form.elements.masterBypassGroupDisabled.checked,
+                quickEggCheck: form.elements.quickEggCheck.checked,
+                quickEggCheckGlobal: quickEggTargets.includes("*"),
+                quickEggCheckBots: quickEggTargets.includes("*") ? [] : splitList(quickEggTargets),
+                gsuidBotPrefix: prefixRules.map(rule => ({
+                    ...serializeRuleTargets(rule),
+                    prefix: String(rule.prefix || ""),
+                    skipIfHasPrefix: rule.skipIfHasPrefix !== false,
+                    forceAddPrefix: splitList(rule.forceAddPrefix),
+                    noPrefixCommands: splitList(rule.noPrefixCommands),
+                })),
+                gsuidDisconnectReply: disconnectRules.map(rule => ({
+                    ...serializeRuleTargets(rule),
+                    enable: rule.enable !== false,
+                    disconnectCount: Number(rule.disconnectCount),
+                    commands: splitList(rule.commands),
+                    message: String(rule.message || ""),
+                })),
+                gsuidCommandMaintenanceReply: commandRules.map(rule => ({
+                    ...serializeRuleTargets(rule),
+                    enable: rule.enable !== false,
+                    commands: splitList(rule.commands),
+                    message: String(rule.message || ""),
+                })),
                 bots: bots.map(bot => ({
                     botId: bot.botId,
                     enable: Boolean(bot.enable),
@@ -270,7 +443,7 @@
 
         function fillConfig(config) {
             loading = true
-            for (const key of ["enable", "defaultBotEnable", "reportPrivate", "reportGroup", "reportMeta", "silentUnauthorized", "masterBypassGroupDisabled"]) {
+            for (const key of ["enable", "defaultBotEnable", "reportPrivate", "reportGroup", "reportMeta", "silentUnauthorized", "masterBypassGroupDisabled", "quickEggCheck"]) {
                 form.elements[key].checked = Boolean(config[key])
             }
             const coreUrl = parseCoreUrl(config.coreUrl)
@@ -278,7 +451,169 @@
             form.elements.coreHost.value = coreUrl.host
             form.elements.corePort.value = coreUrl.port
             for (const key of ["token", "routeBotId", "reconnectInterval"]) form.elements[key].value = config[key] ?? ""
+            quickEggTargets = config.quickEggCheckGlobal === true ? ["*"] : splitList(config.quickEggCheckBots)
+            prefixRules = rulesFromConfig(config.gsuidBotPrefix)
+            disconnectRules = rulesFromConfig(config.gsuidDisconnectReply)
+            commandRules = rulesFromConfig(config.gsuidCommandMaintenanceReply)
+            renderRules()
             loading = false
+        }
+
+        function ruleInput(label, field, value = "", options = {}) {
+            const type = options.type || "text"
+            const control = options.textarea
+                ? `<textarea data-field="${field}" rows="${options.rows || 2}" placeholder="${escapeHtml(options.placeholder || "")}">${escapeHtml(value)}</textarea>`
+                : `<input data-field="${field}" type="${type}" value="${escapeHtml(value)}" ${type === "number" ? 'min="0" step="1"' : ""} placeholder="${escapeHtml(options.placeholder || "")}" />`
+            return `<label class="field"><span>${label}</span>${control}</label>`
+        }
+
+        function renderRuleCard(type, rule, index) {
+            const remove = `<button class="remove-rule-btn" type="button" data-remove-rule="${type}" data-index="${index}">删除</button>`
+            const scope = getScopeSummary(rule.targets)
+            const detail = type === "prefix"
+                ? `前缀：${escapeHtml(rule.prefix || "未填写")}`
+                : `命令：${escapeHtml(splitList(rule.commands).join("、") || "未填写")}`
+            return `<article class="rule-card compact-rule-card" data-rule-type="${type}" data-index="${index}">
+                <div class="rule-card-head"><div><strong>${escapeHtml(ruleMeta[type].title)}</strong><small>${escapeHtml(scope)}</small></div>${remove}</div>
+                <button class="rule-overview" type="button" data-edit-rule="${type}" data-index="${index}">
+                    <span><strong>${detail}</strong><small>进入二级页面修改规则和生效 Bot</small></span>
+                    <span class="scope-summary-action">编辑 <i></i></span>
+                </button>
+            </article>`
+        }
+
+        function renderRules() {
+            const groups = [
+                ["prefixRuleList", "prefix", prefixRules],
+                ["disconnectRuleList", "disconnect", disconnectRules],
+                ["commandRuleList", "command", commandRules],
+            ]
+            for (const [id, type, rules] of groups) {
+                const element = document.getElementById(id)
+                element.innerHTML = rules.length
+                    ? rules.map((rule, index) => renderRuleCard(type, rule, index)).join("")
+                    : '<div class="rule-empty">暂未配置规则。</div>'
+            }
+            document.getElementById("quickEggScopeSummary").textContent = getScopeSummary(quickEggTargets)
+        }
+
+        function getRuleList(type) {
+            if (type === "prefix") return prefixRules
+            if (type === "disconnect") return disconnectRules
+            return commandRules
+        }
+
+        function makeDefaultRule(type) {
+            if (type === "prefix") return { targets: [], prefix: "", skipIfHasPrefix: true, forceAddPrefix: [], noPrefixCommands: [] }
+            return { targets: [], enable: true, disconnectCount: 3, commands: [], message: "" }
+        }
+
+        function getEditorTargets() {
+            if (editorState?.type === "quick") return quickEggTargets
+            return getRuleList(editorState?.type)?.[editorState?.index]?.targets || []
+        }
+
+        function setEditorTargets(targets) {
+            const next = targets.includes("*") ? ["*"] : splitList(targets)
+            if (editorState?.type === "quick") quickEggTargets = next
+            else {
+                const rules = getRuleList(editorState?.type)
+                const rule = rules?.[editorState?.index]
+                if (rule) rule.targets = next
+                for (const [index, otherRule] of rules.entries()) {
+                    if (index === editorState.index) continue
+                    if (next.includes("*")) otherRule.targets = []
+                    else if (otherRule.targets?.includes("*")) otherRule.targets = []
+                    else otherRule.targets = splitList(otherRule.targets).filter(target => !next.includes(target))
+                }
+            }
+        }
+
+        function getScopeBotCard(bot, selected, disabled) {
+            const displayName = bot.name || `Bot ${bot.botId}`
+            const avatar = bot.avatar
+                ? `<img class="bot-avatar" src="${escapeHtml(bot.avatar)}" alt="" />`
+                : `<span class="bot-avatar-fallback">${escapeHtml(displayName.slice(0, 1).toUpperCase())}</span>`
+            return `<label class="bot-card scope-bot-card ${disabled ? "scope-disabled" : ""}">
+                ${avatar}
+                <span><span class="bot-title">${escapeHtml(displayName)}<span class="tag ${bot.online ? "online" : "offline"}">${bot.online ? "在线" : "离线"}</span></span>
+                <span class="bot-meta">ID: ${escapeHtml(bot.botId)}</span></span>
+                <span class="toggle"><input data-scope-bot="${escapeHtml(bot.botId)}" type="checkbox" ${selected ? "checked" : ""} ${disabled ? "disabled" : ""} /><i></i></span>
+            </label>`
+        }
+
+        function renderEditorSettings() {
+            const panel = document.getElementById("editorSettingsPanel")
+            const settings = document.getElementById("editorSettings")
+            if (editorState?.type === "quick") {
+                panel.hidden = true
+                settings.innerHTML = ""
+                return
+            }
+            panel.hidden = false
+            const type = editorState.type
+            const rule = getRuleList(type)[editorState.index]
+            document.getElementById("editorSettingsHelp").textContent = ruleMeta[type].subtitle
+            if (type === "prefix") {
+                settings.innerHTML = `${ruleInput("前缀", "prefix", rule.prefix || "", { placeholder: "例如：星铁" })}
+                    <label class="switch-card"><span><strong>有前缀不插入</strong><small>字母或数字开头时默认视为已有前缀。</small></span><span class="toggle"><input data-field="skipIfHasPrefix" type="checkbox" ${rule.skipIfHasPrefix !== false ? "checked" : ""} /><i></i></span></label>
+                    ${ruleInput("强制加前缀命令", "forceAddPrefix", joinList(rule.forceAddPrefix), { textarea: true, placeholder: "多个值请换行；支持前缀匹配" })}
+                    ${ruleInput("不加前缀命令", "noPrefixCommands", joinList(rule.noPrefixCommands), { textarea: true, placeholder: "多个值请换行；支持前缀匹配" })}`
+                return
+            }
+            const isDisconnect = type === "disconnect"
+            settings.innerHTML = `<label class="switch-card"><span><strong>启用规则</strong><small>关闭后保留配置但不拦截消息。</small></span><span class="toggle"><input data-field="enable" type="checkbox" ${rule.enable !== false ? "checked" : ""} /><i></i></span></label>
+                ${isDisconnect ? ruleInput("断连次数", "disconnectCount", rule.disconnectCount ?? 3, { type: "number" }) : ""}
+                ${ruleInput("触发命令", "commands", joinList(rule.commands), { textarea: true, placeholder: "多个值请换行；* 表示全部命令" })}
+                ${ruleInput("维护消息", "message", rule.message || "", { textarea: true, rows: 3, placeholder: isDisconnect ? "留空使用默认断连维护文案" : "留空使用默认命令维护文案" })}`
+        }
+
+        function renderScopeEditor() {
+            if (!editorState) return
+            const targets = getEditorTargets()
+            const globalEnabled = targets.includes("*")
+            document.getElementById("editorGlobalScope").checked = globalEnabled
+            document.getElementById("editorTargetCount").textContent = globalEnabled ? "全部 Bot" : `${splitList(targets).length} 个 Bot`
+            const list = document.getElementById("scopeBotList")
+            list.classList.toggle("scope-list-disabled", globalEnabled)
+            list.innerHTML = bots.length
+                ? bots.map(bot => getScopeBotCard(bot, targets.includes(String(bot.botId)), globalEnabled)).join("")
+                : '<div class="empty">当前未发现已登录或已配置的 Bot；可开启上方“全局启用”。</div>'
+            renderEditorSettings()
+        }
+
+        function openScopeEditor(type, index = null, isNew = false) {
+            editorState = { type, index, isNew }
+            const meta = type === "quick"
+                ? { title: "快捷查蛋 · 生效 Bot", subtitle: "选择哪些已登录 Bot 的群聊和私聊可以使用快捷查蛋，或开启全局启用。" }
+                : ruleMeta[type]
+            document.getElementById("editorTitle").textContent = meta.title
+            document.getElementById("editorSubtitle").textContent = meta.subtitle
+            document.querySelectorAll(".page").forEach(el => el.classList.toggle("active", el.id === "page-enhance-editor"))
+            document.getElementById("pageTitle").textContent = meta.title
+            document.getElementById("pageSubtitle").textContent = "消息增强二级配置"
+            document.querySelectorAll("[data-page]").forEach(el => el.classList.remove("active"))
+            renderScopeEditor()
+            document.querySelector(".content").scrollTop = 0
+        }
+
+        function closeScopeEditor() {
+            const type = editorState?.type
+            const editorRule = type === "quick" ? null : getRuleList(type)?.[editorState?.index]
+            const skippedNewRule = Boolean(editorRule && editorState?.isNew && !getEditorTargets().length)
+            if (type && type !== "quick") {
+                const rules = getRuleList(type)
+                for (let index = rules.length - 1; index >= 0; index--) {
+                    if (!splitList(rules[index].targets).length) rules.splice(index, 1)
+                }
+            }
+            if (skippedNewRule) {
+                showToast("未选择生效 Bot，规则未添加")
+            }
+            editorState = null
+            renderRules()
+            switchPage("enhance")
+            updateDirty()
         }
 
         function renderBots() {
@@ -340,11 +675,14 @@
                     fillConfig(data.config || {})
                     bots = data.bots || []
                     renderBots()
+                    renderRules()
                     resetSavedState()
                 } else {
                     const current = new Map(bots.map(bot => [bot.botId, bot]))
                     bots = (data.bots || []).map(bot => ({ ...bot, ...(current.get(bot.botId) || {}) }))
                     renderBots()
+                    renderRules()
+                    if (editorState) renderScopeEditor()
                     updateDirty()
                 }
             } finally {
@@ -376,7 +714,69 @@
             updateDirty()
         })
 
-        document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => switchPage(el.dataset.page)))
+        document.getElementById("page-enhance").addEventListener("click", event => {
+            const scopeButton = event.target.closest("[data-edit-scope]")
+            if (scopeButton) {
+                openScopeEditor(scopeButton.dataset.editScope)
+                return
+            }
+            const editButton = event.target.closest("[data-edit-rule]")
+            if (editButton) {
+                openScopeEditor(editButton.dataset.editRule, Number(editButton.dataset.index))
+                return
+            }
+            const addButton = event.target.closest("[data-add-rule]")
+            if (addButton) {
+                const type = addButton.dataset.addRule
+                const list = getRuleList(type)
+                list.push(makeDefaultRule(type))
+                renderRules()
+                updateDirty()
+                openScopeEditor(type, list.length - 1, true)
+                return
+            }
+            const removeButton = event.target.closest("[data-remove-rule]")
+            if (removeButton) {
+                getRuleList(removeButton.dataset.removeRule).splice(Number(removeButton.dataset.index), 1)
+                renderRules()
+                updateDirty()
+            }
+        })
+
+        document.getElementById("editorGlobalScope").addEventListener("change", event => {
+            if (!editorState) return
+            setEditorTargets(event.target.checked ? ["*"] : [])
+            renderScopeEditor()
+            updateDirty()
+        })
+
+        document.getElementById("scopeBotList").addEventListener("change", event => {
+            const input = event.target.closest("[data-scope-bot]")
+            if (!input || !editorState) return
+            const targets = new Set(getEditorTargets().filter(item => item !== "*"))
+            if (input.checked) targets.add(input.dataset.scopeBot)
+            else targets.delete(input.dataset.scopeBot)
+            setEditorTargets([...targets])
+            renderScopeEditor()
+            updateDirty()
+        })
+
+        document.getElementById("editorSettings").addEventListener("input", event => {
+            if (!editorState || editorState.type === "quick") return
+            const field = event.target.dataset.field
+            if (!field) return
+            const rule = getRuleList(editorState.type)[editorState.index]
+            rule[field] = event.target.type === "checkbox" ? event.target.checked : event.target.value
+            updateDirty()
+        })
+
+        document.getElementById("editorBackBtn").addEventListener("click", closeScopeEditor)
+        document.getElementById("editorDoneBtn").addEventListener("click", closeScopeEditor)
+
+        document.querySelectorAll("[data-page]").forEach(el => el.addEventListener("click", () => {
+            if (editorState) closeScopeEditor()
+            switchPage(el.dataset.page)
+        }))
         document.querySelector("[data-protocol-select]").addEventListener("click", event => {
             const select = event.currentTarget
             const option = event.target.closest("[data-value]")
@@ -401,12 +801,16 @@
             button.textContent = input.type === "password" ? "显示" : "隐藏"
         }))
         form.addEventListener("input", updateDirty)
-        form.addEventListener("change", () => { renderBots(); updateDirty() })
+        form.addEventListener("change", event => {
+            if (!event.target.closest("#page-enhance-editor")) renderBots()
+            updateDirty()
+        })
         form.addEventListener("submit", async event => {
             event.preventDefault()
             const button = document.getElementById("saveBtn")
             button.disabled = true
             try {
+                const wasEditing = Boolean(editorState)
                 const data = await request(apiUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -415,6 +819,8 @@
                 fillConfig(data.config || {})
                 bots = data.bots || []
                 renderBots()
+                if (wasEditing) closeScopeEditor()
+                else renderRules()
                 resetSavedState()
                 showToast(data.message || "配置已保存")
             } catch (error) {

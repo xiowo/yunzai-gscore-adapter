@@ -25,6 +25,24 @@ function normalizeWsUrl(value, { allowEmpty = false } = {}) {
     return text
 }
 
+function normalizeStringList(value) {
+    return [...new Set((Array.isArray(value) ? value : []).map(item => stringifyId(item).trim()).filter(Boolean))]
+}
+
+function normalizeRuleList(value, normalizeItem) {
+    if (!Array.isArray(value)) return []
+    return value.map(item => ({
+        global: item?.global === true,
+        botIds: normalizeStringList(item?.botIds).filter(botId => botId.length <= 128),
+        ...normalizeItem(item),
+    })).filter(item => item.global || item.botIds.length)
+}
+
+function normalizeDisconnectCount(value) {
+    const count = Number(value)
+    return Number.isFinite(count) ? Math.max(Math.floor(count), 0) : 3
+}
+
 function normalizeConfig(body = {}, currentConfig = {}) {
     const bots = Object.create(null)
     for (const item of Array.isArray(body.bots) ? body.bots : []) {
@@ -54,6 +72,26 @@ function normalizeConfig(body = {}, currentConfig = {}) {
         reportMeta: body.reportMeta === true,
         silentUnauthorized: body.silentUnauthorized === true,
         masterBypassGroupDisabled: body.masterBypassGroupDisabled === true,
+        quickEggCheck: body.quickEggCheck === undefined ? currentConfig.quickEggCheck === true : body.quickEggCheck === true,
+        quickEggCheckGlobal: body.quickEggCheckGlobal === undefined ? currentConfig.quickEggCheckGlobal === true : body.quickEggCheckGlobal === true,
+        quickEggCheckBots: normalizeStringList(body.quickEggCheckBots ?? currentConfig.quickEggCheckBots),
+        gsuidBotPrefix: normalizeRuleList(body.gsuidBotPrefix ?? currentConfig.gsuidBotPrefix, item => ({
+            prefix: String(item?.prefix || ""),
+            skipIfHasPrefix: item?.skipIfHasPrefix !== false,
+            forceAddPrefix: normalizeStringList(item?.forceAddPrefix),
+            noPrefixCommands: normalizeStringList(item?.noPrefixCommands),
+        })),
+        gsuidDisconnectReply: normalizeRuleList(body.gsuidDisconnectReply ?? currentConfig.gsuidDisconnectReply, item => ({
+            enable: item?.enable !== false,
+            disconnectCount: normalizeDisconnectCount(item?.disconnectCount),
+            commands: normalizeStringList(item?.commands),
+            message: String(item?.message || ""),
+        })),
+        gsuidCommandMaintenanceReply: normalizeRuleList(body.gsuidCommandMaintenanceReply ?? currentConfig.gsuidCommandMaintenanceReply, item => ({
+            enable: item?.enable !== false,
+            commands: normalizeStringList(item?.commands),
+            message: String(item?.message || ""),
+        })),
         groupRules: currentConfig.groupRules || {},
         bots,
     }
@@ -66,7 +104,13 @@ function emitReload() {
 
 async function getPayload() {
     const config = await loadConfig()
-    const botIds = [...new Set([...getOnlineBotIds(), ...Object.keys(config.bots || {})])]
+    const configuredRuleBotIds = [
+        ...(config.quickEggCheckBots || []),
+        ...(config.gsuidBotPrefix || []).flatMap(rule => rule.botIds || []),
+        ...(config.gsuidDisconnectReply || []).flatMap(rule => rule.botIds || []),
+        ...(config.gsuidCommandMaintenanceReply || []).flatMap(rule => rule.botIds || []),
+    ]
+    const botIds = [...new Set([...getOnlineBotIds(), ...Object.keys(config.bots || {}), ...configuredRuleBotIds])]
     return {
         ok: true,
         config,
