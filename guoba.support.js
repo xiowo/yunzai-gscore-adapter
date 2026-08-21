@@ -75,6 +75,21 @@ function normalizeDisconnectCount(value) {
     return Number.isFinite(count) ? Math.max(Math.floor(count), 0) : 3
 }
 
+function normalizeBotPrefixRule(item = {}) {
+    const prefixMode = item.prefixMode === "commands" ? "commands" : "all"
+    return {
+        prefixMode,
+        prefix: String(item.prefix || ""),
+        ...(prefixMode === "commands" ? {
+            commands: normalizeStringList(item.commands),
+        } : {
+            skipIfHasPrefix: item.skipIfHasPrefix !== false,
+            forceAddPrefix: normalizeStringList(item.forceAddPrefix),
+            noPrefixCommands: normalizeStringList(item.noPrefixCommands),
+        }),
+    }
+}
+
 function getLoginBotIds() {
     const bot = globalThis.Bot
     const uin = bot?.uin
@@ -152,10 +167,12 @@ export function supportGuoba() {
                         schemas: [
                             { field: "global", label: "全局启用", component: "Switch" },
                             { field: "botIds", label: "Bot 账号", component: "Select", componentProps: { allowClear: true, mode: "tags" } },
+                            { field: "prefixMode", label: "添加模式", component: "Select", componentProps: { options: [{ label: "全局添加", value: "all" }, { label: "仅指定消息添加", value: "commands" }] }, bottomHelpMessage: "全局添加保持当前行为；仅指定消息添加只处理下方消息列表命中的内容。" },
+                            { field: "commands", label: "指定消息列表", component: "Select", componentProps: { allowClear: true, mode: "tags", options: [{ value: "*" }] }, bottomHelpMessage: "仅在添加模式为“仅指定消息添加”时生效，支持开头匹配和 * 通配。" },
                             { field: "prefix", label: "前缀", component: "Input", required: true },
-                            { field: "skipIfHasPrefix", label: "有前缀不插入", component: "Switch", componentProps: { defaultValue: true } },
-                            { field: "forceAddPrefix", label: "强制加前缀命令", component: "Select", componentProps: { allowClear: true, mode: "tags" } },
-                            { field: "noPrefixCommands", label: "不加前缀命令", component: "Select", componentProps: { allowClear: true, mode: "tags" } },
+                            { field: "skipIfHasPrefix", label: "有前缀不插入", component: "Switch", componentProps: { defaultValue: true }, bottomHelpMessage: "仅在“全局添加”模式生效。" },
+                            { field: "forceAddPrefix", label: "强制加前缀命令", component: "Select", componentProps: { allowClear: true, mode: "tags" }, bottomHelpMessage: "仅在“全局添加”模式生效。" },
+                            { field: "noPrefixCommands", label: "不加前缀命令", component: "Select", componentProps: { allowClear: true, mode: "tags" }, bottomHelpMessage: "仅在“全局添加”模式生效。" },
                         ],
                     },
                 },
@@ -227,12 +244,7 @@ export function supportGuoba() {
                 const config = readConfig()
                 const next = { ...config, ...data }
                 if (Array.isArray(data.botList)) next.bots = restoreBotConfig(data.botList)
-                if (Array.isArray(data.gsuidBotPrefixList)) next.gsuidBotPrefix = normalizeRuleList(data.gsuidBotPrefixList, item => ({
-                    prefix: String(item?.prefix || ""),
-                    skipIfHasPrefix: item?.skipIfHasPrefix !== false,
-                    forceAddPrefix: normalizeStringList(item?.forceAddPrefix),
-                    noPrefixCommands: normalizeStringList(item?.noPrefixCommands),
-                }))
+                if (Array.isArray(data.gsuidBotPrefixList)) next.gsuidBotPrefix = normalizeRuleList(data.gsuidBotPrefixList, normalizeBotPrefixRule)
                 if (Array.isArray(data.gsuidDisconnectReplyList)) next.gsuidDisconnectReply = normalizeRuleList(data.gsuidDisconnectReplyList, item => ({
                     enable: item?.enable !== false,
                     disconnectCount: normalizeDisconnectCount(item?.disconnectCount),

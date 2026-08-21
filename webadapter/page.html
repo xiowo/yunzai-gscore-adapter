@@ -411,13 +411,21 @@
                 quickEggCheck: form.elements.quickEggCheck.checked,
                 quickEggCheckGlobal: quickEggTargets.includes("*"),
                 quickEggCheckBots: quickEggTargets.includes("*") ? [] : splitList(quickEggTargets),
-                gsuidBotPrefix: prefixRules.map(rule => ({
-                    ...serializeRuleTargets(rule),
-                    prefix: String(rule.prefix || ""),
-                    skipIfHasPrefix: rule.skipIfHasPrefix !== false,
-                    forceAddPrefix: splitList(rule.forceAddPrefix),
-                    noPrefixCommands: splitList(rule.noPrefixCommands),
-                })),
+                gsuidBotPrefix: prefixRules.map(rule => {
+                    const prefixMode = rule.prefixMode === "commands" ? "commands" : "all"
+                    return {
+                        ...serializeRuleTargets(rule),
+                        prefixMode,
+                        prefix: String(rule.prefix || ""),
+                        ...(prefixMode === "commands" ? {
+                            commands: splitList(rule.commands),
+                        } : {
+                            skipIfHasPrefix: rule.skipIfHasPrefix !== false,
+                            forceAddPrefix: splitList(rule.forceAddPrefix),
+                            noPrefixCommands: splitList(rule.noPrefixCommands),
+                        }),
+                    }
+                }),
                 gsuidDisconnectReply: disconnectRules.map(rule => ({
                     ...serializeRuleTargets(rule),
                     enable: rule.enable !== false,
@@ -480,7 +488,7 @@
             const remove = `<button class="remove-rule-btn" type="button" data-remove-rule="${type}" data-index="${index}">删除</button>`
             const scope = getScopeSummary(rule.targets)
             const detail = type === "prefix"
-                ? `前缀：${escapeHtml(rule.prefix || "未填写")}`
+                ? `${rule.prefixMode === "commands" ? "指定消息" : "全局添加"} · 前缀：${escapeHtml(rule.prefix || "未填写")}`
                 : `命令：${escapeHtml(splitList(rule.commands).join("、") || "未填写")}`
             return `<article class="rule-card compact-rule-card" data-rule-type="${type}" data-index="${index}">
                 <div class="rule-card-head"><div><strong>${escapeHtml(ruleMeta[type].title)}</strong><small>${escapeHtml(scope)}</small></div>${remove}</div>
@@ -513,7 +521,7 @@
         }
 
         function makeDefaultRule(type) {
-            if (type === "prefix") return { targets: [], prefix: "", skipIfHasPrefix: true, forceAddPrefix: [], noPrefixCommands: [] }
+            if (type === "prefix") return { targets: [], prefixMode: "all", commands: [], prefix: "", skipIfHasPrefix: true, forceAddPrefix: [], noPrefixCommands: [] }
             return { targets: [], enable: true, disconnectCount: 3, commands: [], message: "" }
         }
 
@@ -564,10 +572,22 @@
             const rule = getRuleList(type)[editorState.index]
             document.getElementById("editorSettingsHelp").textContent = ruleMeta[type].subtitle
             if (type === "prefix") {
-                settings.innerHTML = `${ruleInput("前缀", "prefix", rule.prefix || "", { placeholder: "例如：星铁" })}
-                    <label class="switch-card"><span><strong>有前缀不插入</strong><small>字母或数字开头时默认视为已有前缀。</small></span><span class="toggle"><input data-field="skipIfHasPrefix" type="checkbox" ${rule.skipIfHasPrefix !== false ? "checked" : ""} /><i></i></span></label>
+                const commandMode = rule.prefixMode === "commands"
+                const modeLabel = commandMode ? "仅指定消息添加" : "全局添加"
+                settings.innerHTML = `<div class="field"><span>添加模式</span>
+                    <div class="protocol-select" data-prefix-mode-select>
+                        <button class="protocol-trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span>${modeLabel}</span><i></i></button>
+                        <div class="protocol-menu" role="listbox">
+                            <button type="button" role="option" data-value="all" aria-selected="${String(!commandMode)}">全局添加</button>
+                            <button type="button" role="option" data-value="commands" aria-selected="${String(commandMode)}">仅指定消息添加</button>
+                        </div>
+                    </div>
+                </div>
+                    ${ruleInput("前缀", "prefix", rule.prefix || "", { placeholder: "例如：星铁" })}
+                    ${commandMode ? ruleInput("指定消息列表", "commands", joinList(rule.commands), { textarea: true, placeholder: "多个值请换行；支持开头匹配，* 表示全部消息" }) : ""}
+                    ${commandMode ? "" : `<label class="switch-card"><span><strong>有前缀不插入</strong><small>字母或数字开头时默认视为已有前缀。</small></span><span class="toggle"><input data-field="skipIfHasPrefix" type="checkbox" ${rule.skipIfHasPrefix !== false ? "checked" : ""} /><i></i></span></label>
                     ${ruleInput("强制加前缀命令", "forceAddPrefix", joinList(rule.forceAddPrefix), { textarea: true, placeholder: "多个值请换行；支持前缀匹配" })}
-                    ${ruleInput("不加前缀命令", "noPrefixCommands", joinList(rule.noPrefixCommands), { textarea: true, placeholder: "多个值请换行；支持前缀匹配" })}`
+                    ${ruleInput("不加前缀命令", "noPrefixCommands", joinList(rule.noPrefixCommands), { textarea: true, placeholder: "多个值请换行；支持前缀匹配" })}`}`
                 return
             }
             const isDisconnect = type === "disconnect"
@@ -779,6 +799,23 @@
             updateDirty()
         })
 
+        document.getElementById("editorSettings").addEventListener("click", event => {
+            const select = event.target.closest("[data-prefix-mode-select]")
+            if (!select || !editorState || editorState.type !== "prefix") return
+            const option = event.target.closest("[data-value]")
+            if (option) {
+                prefixRules[editorState.index].prefixMode = option.dataset.value === "commands" ? "commands" : "all"
+                renderEditorSettings()
+                updateDirty()
+                return
+            }
+            if (event.target.closest(".protocol-trigger")) {
+                const open = !select.classList.contains("open")
+                select.classList.toggle("open", open)
+                select.querySelector(".protocol-trigger").setAttribute("aria-expanded", String(open))
+            }
+        })
+
         document.getElementById("editorBackBtn").addEventListener("click", closeScopeEditor)
         document.getElementById("editorDoneBtn").addEventListener("click", closeScopeEditor)
 
@@ -803,6 +840,12 @@
         })
         document.addEventListener("click", event => {
             if (!event.target.closest("[data-protocol-select]")) closeProtocolSelect()
+            if (!event.target.closest("[data-prefix-mode-select]")) {
+                document.querySelectorAll("[data-prefix-mode-select].open").forEach(select => {
+                    select.classList.remove("open")
+                    select.querySelector(".protocol-trigger").setAttribute("aria-expanded", "false")
+                })
+            }
         })
         document.querySelectorAll(".password-btn").forEach(button => button.addEventListener("click", () => {
             const input = button.previousElementSibling

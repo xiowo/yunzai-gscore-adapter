@@ -1,5 +1,5 @@
 import { DEFAULT_CONFIG } from "../lib/constants.js"
-import { loadConfig, saveConfig } from "../lib/config.js"
+import { loadConfig, normalizeBotPrefixRule, saveConfig } from "../lib/config.js"
 import { getOnlineBotIds, stringifyId } from "../lib/utils.js"
 
 function getBotInfo(botId) {
@@ -77,12 +77,7 @@ function normalizeConfig(body = {}, currentConfig = {}) {
         quickEggCheck: body.quickEggCheck === undefined ? currentConfig.quickEggCheck === true : body.quickEggCheck === true,
         quickEggCheckGlobal: body.quickEggCheckGlobal === undefined ? currentConfig.quickEggCheckGlobal === true : body.quickEggCheckGlobal === true,
         quickEggCheckBots: normalizeStringList(body.quickEggCheckBots ?? currentConfig.quickEggCheckBots),
-        gsuidBotPrefix: normalizeRuleList(body.gsuidBotPrefix ?? currentConfig.gsuidBotPrefix, item => ({
-            prefix: String(item?.prefix || ""),
-            skipIfHasPrefix: item?.skipIfHasPrefix !== false,
-            forceAddPrefix: normalizeStringList(item?.forceAddPrefix),
-            noPrefixCommands: normalizeStringList(item?.noPrefixCommands),
-        })),
+        gsuidBotPrefix: normalizeRuleList(body.gsuidBotPrefix ?? currentConfig.gsuidBotPrefix, normalizeBotPrefixRule),
         gsuidDisconnectReply: normalizeRuleList(body.gsuidDisconnectReply ?? currentConfig.gsuidDisconnectReply, item => ({
             enable: item?.enable !== false,
             disconnectCount: normalizeDisconnectCount(item?.disconnectCount),

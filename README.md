@@ -78,12 +78,10 @@ gsuidBotPrefix:
   - global: false
     botIds:
       - "123456789"
-    prefix: 星铁
-    skipIfHasPrefix: true
-    forceAddPrefix:
+    prefixMode: commands # all: 全局添加；commands: 仅指定消息添加
+    commands:
       - 帮助
-    noPrefixCommands:
-      - core
+    prefix: 星铁
 gsuidDisconnectReply:
   - global: false
     botIds:
@@ -116,7 +114,7 @@ bots:
 - 开启 **上传 Markdown 本地图片** 后，`![图片](/gsuid_core/data/...)` 等本地绝对路径会先通过 `Bot.imageToUrl` 上传，再替换为图床 URL。HTTP、base64、data 和 file 地址不会处理；文件不存在或上传失败时保留原文。
 
 - **快捷查蛋**同时处理群聊和私聊。格式与 ws-plugin 一致，例如 `0.07m 0.146kg`、`炫彩 0.07 0.146kg`；已经以 `精灵蛋` 或 `查蛋` 开头的消息不会重复补全。
-- **转发前缀**会先去掉消息开头的空格和 `/` 再添加。`skipIfHasPrefix` 开启时，字母或数字开头默认视作已经有命令前缀；`forceAddPrefix` 可覆盖该判断；`noPrefixCommands` 优先级最高。
+- **转发前缀**会先去掉消息开头的空格和 `/` 再添加。`prefixMode` 默认为 `all`，保持当前对所有消息添加前缀的行为；设置为 `commands` 后，仅 `commands` 列表开头匹配的消息添加前缀，支持 `*` 通配，并忽略另外三个全局模式选项。仅在 `all` 模式下，`skipIfHasPrefix` 会将字母或数字开头视作已有前缀，`forceAddPrefix` 可覆盖该判断，`noPrefixCommands` 优先级最高。
 - **维护命令**使用开头匹配，匹配前会忽略消息开头的空格和 `/`；填写 `*` 表示匹配全部消息。
 - **断连次数**按同一 WebSocket 的连续断开次数计算，达到配置值时触发，连接恢复后清零。命中断连维护或命令维护时，插件会直接回复，不会把该条消息放入重连队列。
 - 四项规则均可按 `self_id`（Yunzai Bot 账号）生效。插件 WebUI 会在二级页面展示已登录/已配置 Bot，通过开关选择；开启“全局启用”后会设置规则的 `global: true`，任意 Bot 均遵循该配置。
