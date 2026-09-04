@@ -7,7 +7,7 @@ function getBotInfo(botId) {
     return {
         botId,
         name: String(bot?.nickname || bot?.name || bot?.info?.nickname || ""),
-        avatar: botId && /^\d+$/.test(botId) ? `https://q1.qlogo.cn/g?b=qq&nk=${encodeURIComponent(botId)}&s=100` : "",
+        avatar: botId && /^\d+$/.test(botId) ? `https://q1.qlogo.cn/g?b=qq&nk=${encodeURIComponent(botId)}&s=640` : "",
         online: getOnlineBotIds().includes(botId),
     }
 }
