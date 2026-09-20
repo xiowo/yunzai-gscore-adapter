@@ -86,6 +86,8 @@ bots:
 
 ## ❓ 常见问题 (FAQ)
 
+有问题欢迎前往[issue](https://github.com/xiowo/yunzai-gscore-adapter/issues)指出
+
 ### Q1: 无法连接到 GScore？
 
 **A**:
