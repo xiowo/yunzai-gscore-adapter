@@ -4,6 +4,9 @@ coreUrl: ws://127.0.0.1:8765
 token: ""
 routeBotId: Yunzai
 reconnectInterval: 5000
+heartbeatInterval: 30000
+sendTimeout: 8000
+controlSendTimeout: 9000
 reportPrivate: true
 reportGroup: true
 reportMeta: true

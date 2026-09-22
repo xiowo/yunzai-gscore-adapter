@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG } from "../lib/constants.js"
+import { CORE_RECEIPT_DEADLINE, DEFAULT_CONFIG, HEARTBEAT_INTERVAL } from "../lib/constants.js"
 import { loadConfig, normalizeBotPrefixRule, saveConfig } from "../lib/config.js"
 import { getOnlineBotIds, stringifyId } from "../lib/utils.js"
 
@@ -43,6 +43,19 @@ function normalizeDisconnectCount(value) {
     return Number.isFinite(count) ? Math.max(Math.floor(count), 0) : 3
 }
 
+/**
+ * 毫秒时长的校验：越界时明确报错，而不是静默钳掉 —— 前端已带 min/max，
+ * 走到这里还越界说明前端被绕过或手改了请求，报错比悄悄改掉用户填的值更容易发现。
+ * 未提供（旧版页面提交 / 其他调用方）时沿用当前配置，与 quickEggCheck 等的回落口径一致。
+ */
+function normalizeDuration(value, fallback, { min, max, label }) {
+    const number = Number(value === undefined || value === null || value === "" ? fallback : value)
+    if (!Number.isFinite(number)) throw new Error(`${label}应为毫秒数字`)
+    if (number < min) throw new Error(`${label}应不低于 ${min} 毫秒`)
+    if (max !== undefined && number > max) throw new Error(`${label}应不高于 ${max} 毫秒`)
+    return Math.round(number)
+}
+
 function normalizeConfig(body = {}, currentConfig = {}) {
     const bots = Object.create(null)
     for (const item of Array.isArray(body.bots) ? body.bots : []) {
@@ -60,6 +73,12 @@ function normalizeConfig(body = {}, currentConfig = {}) {
     if (!Number.isFinite(reconnectInterval) || reconnectInterval < 1000 || reconnectInterval > 3600000) {
         throw new Error("重连间隔应为 1000 至 3600000 毫秒")
     }
+    // 心跳只设下限（再密是无意义空转，与 config.js 同一口径）。
+    // 两个下发超时的上限统一取 CORE_RECEIPT_DEADLINE：回执必须赶在 core 的 10 秒窗口内送达，
+    // 否则 core 已经放弃等待，回执变成噪音还会累计降级计数（协议 §11.2 / §11.6）。
+    const heartbeatInterval = normalizeDuration(body.heartbeatInterval, currentConfig.heartbeatInterval ?? HEARTBEAT_INTERVAL, { min: 3000, label: "心跳间隔" })
+    const sendTimeout = normalizeDuration(body.sendTimeout, currentConfig.sendTimeout ?? DEFAULT_CONFIG.sendTimeout, { min: 1000, max: CORE_RECEIPT_DEADLINE, label: "下发超时" })
+    const controlSendTimeout = normalizeDuration(body.controlSendTimeout, currentConfig.controlSendTimeout ?? DEFAULT_CONFIG.controlSendTimeout, { min: 1000, max: CORE_RECEIPT_DEADLINE, label: "控制类下发超时" })
     return {
         enable: body.enable === true,
         defaultBotEnable: body.defaultBotEnable === true,
@@ -67,6 +86,9 @@ function normalizeConfig(body = {}, currentConfig = {}) {
         token: String(body.token || ""),
         routeBotId: stringifyId(body.routeBotId || DEFAULT_CONFIG.routeBotId || "Yunzai").trim(),
         reconnectInterval: Math.round(reconnectInterval),
+        heartbeatInterval,
+        sendTimeout,
+        controlSendTimeout,
         reportPrivate: body.reportPrivate === true,
         reportGroup: body.reportGroup === true,
         reportMeta: body.reportMeta === true,

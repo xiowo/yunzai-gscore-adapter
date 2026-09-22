@@ -145,7 +145,9 @@ export class GscoreAdapterStatus extends plugin {
         if (!(await this.requireMaster())) return false
         const lines = [...clients.entries()].map(([botId, client]) => {
             const state = client.connected ? "已连接" : client.connecting ? "连接中" : "未连接"
-            return `${botId}：${state}（${client.selfIds?.size || 0} 个 Bot） ${client.url.replace(/token=[^&]+/, "token=***")}`
+            const { count, bytes } = client.getQueueSnapshot()
+            const backlog = count ? ` 积压 ${count} 条/${(bytes / 1048576).toFixed(1)}MB` : ""
+            return `${botId}：${state}${backlog}（${client.selfIds?.size || 0} 个 Bot） ${client.url.replace(/token=[^&]+/, "token=***")}`
         })
         await this.reply(`Gscore-Adapter：${lines.length ? "\n" + lines.join("\n") : "未启用任何 Bot"}`, true)
         return true

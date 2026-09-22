@@ -101,6 +101,18 @@
                                     <label class="field"><span>重连间隔</span><span class="suffix-input"><input
                                                 name="reconnectInterval" type="number" min="1000" max="3600000"
                                                 step="1000" /><b>ms</b></span></label>
+                                    <label class="field"><span
+                                            title="适配器主动探活间隔，下限 3000；连续 2.5 个周期收不到 pong 判定连接已死并重连">心跳间隔</span><span
+                                            class="suffix-input"><input name="heartbeatInterval" type="number"
+                                                min="3000" step="1000" /><b>ms</b></span></label>
+                                    <label class="field"><span
+                                            title="单条下发的处理上限，1000-9000；必须早于 core 的 10 秒回执窗口，超时会回 id: null">下发超时</span><span
+                                            class="suffix-input"><input name="sendTimeout" type="number" min="1000"
+                                                max="9000" step="1000" /><b>ms</b></span></label>
+                                    <label class="field"><span
+                                            title="拉群成员 / 主动权限测试的处理上限，1000-9000，只允许比下发超时更短">控制类下发超时</span><span
+                                            class="suffix-input"><input name="controlSendTimeout" type="number"
+                                                min="1000" max="9000" step="1000" /><b>ms</b></span></label>
                                     <label
                                         class="switch-card"><span><strong>无权限静默</strong><small>无权限用户执行插件命令时不返回提示。</small></span><span
                                             class="toggle"><input name="silentUnauthorized"
@@ -393,6 +405,11 @@
             return `${labels.join("、")} · ${suffix}`
         }
 
+        function durationValue(element) {
+            const text = String(element.value ?? "").trim()
+            return text === "" ? undefined : Number(text)
+        }
+
         function collectConfig() {
             return {
                 enable: form.elements.enable.checked,
@@ -401,6 +418,9 @@
                 token: form.elements.token.value,
                 routeBotId: form.elements.routeBotId.value.trim(),
                 reconnectInterval: Number(form.elements.reconnectInterval.value),
+                heartbeatInterval: durationValue(form.elements.heartbeatInterval),
+                sendTimeout: durationValue(form.elements.sendTimeout),
+                controlSendTimeout: durationValue(form.elements.controlSendTimeout),
                 reportPrivate: form.elements.reportPrivate.checked,
                 reportGroup: form.elements.reportGroup.checked,
                 reportMeta: form.elements.reportMeta.checked,
@@ -467,7 +487,7 @@
             setCoreProtocol(coreUrl.protocol)
             form.elements.coreHost.value = coreUrl.host
             form.elements.corePort.value = coreUrl.port
-            for (const key of ["token", "routeBotId", "reconnectInterval", "gsuidCoreRoot"]) form.elements[key].value = config[key] ?? ""
+            for (const key of ["token", "routeBotId", "reconnectInterval", "heartbeatInterval", "sendTimeout", "controlSendTimeout", "gsuidCoreRoot"]) form.elements[key].value = config[key] ?? ""
             quickEggTargets = config.quickEggCheckGlobal === true ? ["*"] : splitList(config.quickEggCheckBots)
             prefixRules = rulesFromConfig(config.gsuidBotPrefix)
             disconnectRules = rulesFromConfig(config.gsuidDisconnectReply)
